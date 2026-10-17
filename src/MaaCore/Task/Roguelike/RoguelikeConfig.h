@@ -39,6 +39,7 @@ enum class RoguelikeMode
 
     // ------------------ 界园主题专用模式 ------------------
     FindPlaytime = 20'001, // 20001 - 刷常乐节点，第一层进洞，找不到需要的节点就重开
+    TestStrategy = 20'002, // 20002 - 界园测试策略
 
     // ------------------ 黑流树海主题专用模式 ------------------
     BlackFlowBabyAnimal = 30'001 // 30001 - 刷襁褓动物
@@ -114,7 +115,8 @@ public:
                mode == RoguelikeMode::Squad || mode == RoguelikeMode::Exploration ||
                (mode == RoguelikeMode::CLP_PDS && theme == RoguelikeTheme::Sami) ||
                (mode == RoguelikeMode::FastPass && theme == RoguelikeTheme::Sarkaz) ||
-               (mode == RoguelikeMode::FindPlaytime && theme == RoguelikeTheme::JieGarden);
+               ((mode == RoguelikeMode::FindPlaytime || mode == RoguelikeMode::TestStrategy) &&
+                theme == RoguelikeTheme::JieGarden);
     }
 
     bool verify_and_load_params(const json::value& params);

@@ -1,0 +1,46 @@
+diff --git a/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift b/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift
+index a6ce36a..7f09843 100644
+--- a/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift	
++++ b/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift	
+@@ -234,6 +234,8 @@ extension RoguelikeConfiguration.Mode {
+             String(localized: "刷深入调查，尽可能稳定地打更多层数")
+         case (.findPlaytime, _):
+             String(localized: "刷常乐节点，第一层进洞，找不到需要的节点就重开")
++        case (.testStrategy, _):
++            String(localized: "测试策略，用于测试界园肉鸽流程")
+         case (.babyAnimal, _):
+             String(localized: "刷襁褓动物")
+         }
+diff --git a/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift b/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift
+index 9a80703..e1e749e 100644
+--- a/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift	
++++ b/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift	
+@@ -29,6 +29,10 @@ struct RoguelikeConfiguration: MAATaskConfiguration {
+         ///
+         /// 界园主题专用模式
+         case findPlaytime = 20001
++        /// 测试策略
++        ///
++        /// 界园主题专用测试模式
++        case testStrategy = 20002
+         /// 刷襁褓动物
+         ///
+         /// 黑流树海主题专用模式
+@@ -283,7 +287,7 @@ extension RoguelikeConfiguration.Theme {
+         case .Sami:
+             return commonModes + [.clpPds]
+         case .JieGarden:
+-            return commonModes + [.findPlaytime]
++            return commonModes + [.findPlaytime, .testStrategy]
+         case .BlackFlow:
+             return [.exp, .investment, .babyAnimal]
+         default:
+@@ -309,6 +313,8 @@ extension RoguelikeConfiguration.Mode {
+             String(localized: "深入调查")
+         case .findPlaytime:
+             String(localized: "刷常乐节点")
++        case .testStrategy:
++            String(localized: "测试策略")
+         case .babyAnimal:
+             String(localized: "刷襁褓动物")
+         }

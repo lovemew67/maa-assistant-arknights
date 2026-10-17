@@ -155,6 +155,11 @@ echo "CURRENT_PROJECT_VERSION = 1" >> src/MaaMacGui/Version.xcconfig
 
 pushd src/MaaMacGui > /dev/null
 
+if [[ -f "${REPO_ROOT}/patches/MaaMacGui.diff" ]]; then
+    echo "==> Applying patch from patches/MaaMacGui.diff..."
+    git apply "${REPO_ROOT}/patches/MaaMacGui.diff" 2>/dev/null || true
+fi
+
 rm -rf DerivedData MAA.xcarchive MAA.app
 xcodebuild -skipMacroValidation CODE_SIGNING_ALLOWED=NO ARCHS="${ARCH}" ONLY_ACTIVE_ARCH=YES -derivedDataPath DerivedData -scheme MAA archive -archivePath MAA.xcarchive
 
@@ -182,7 +187,7 @@ codesign --force --deep --sign - "${TARGET_APP_PATH}"
 
 # Clean up build artifacts inside submodule to keep git clean
 rm -rf MAA.app MAA.xcarchive DerivedData
-git checkout Version.xcconfig 2>/dev/null || true
+git checkout . 2>/dev/null || true
 
 popd > /dev/null
 
