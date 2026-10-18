@@ -1173,7 +1173,21 @@
     },
     "JieGarden@Roguelike@StageYiTraderEnter": {
         "baseTask": "Roguelike@StageEnter",
-        "next": ["JieGarden@Roguelike@StageTraderLeave", "JieGarden@Roguelike@StageTraderLeaveConfirm"]
+        "next": [
+            "JieGarden@Roguelike@TestStrategyLogYiTraderGoods",
+            "JieGarden@Roguelike@StageTraderLeave",
+            "JieGarden@Roguelike@StageTraderLeaveConfirm"
+        ]
+    },
+    "JieGarden@Roguelike@TestStrategyLogYiTraderGoods": {
+        "Doc": "测试策略：检测并记录易与节点出售的藏品",
+        "template": "Roguelike@StageTraderLeave.png",
+        "roi": [1046, 443, 234, 204],
+        "action": "DoNothing",
+        "next": [
+            "JieGarden@Roguelike@StageTraderLeave",
+            "JieGarden@Roguelike@StageTraderLeaveConfirm"
+        ]
     },
     "JieGarden@Roguelike@Stages": {
         "baseTask": "JieGarden@Roguelike@Stages_default",
@@ -1408,7 +1422,7 @@
     },
     "JieGarden@Roguelike@StrategyChange_mode20002": {
         "Doc": "测试策略",
-        "text": ["_default", "_testStrategyFloor2", "_leaveBoskyPassage"],
+        "text": ["_default", "_testStrategyFloor2", "_boskyPassageDefault"],
         "ocrReplace": [
             ["洪[陆陸]楼", "_default"],
             ["山水[阁閣]", "_testStrategyFloor2"],
@@ -1416,7 +1430,7 @@
             ["汝吾[门門]?", "_testStrategyFloor2"],
             ["[见見]字(祠|柯)", "_testStrategyFloor2"],
             ["始末陵", "_testStrategyFloor2"],
-            ["是非(境|坍)", "_leaveBoskyPassage"]
+            ["是非(境|坍)", "_boskyPassageDefault"]
         ],
         "roi": [627, 14, 71, 28],
         "withoutDet": true,

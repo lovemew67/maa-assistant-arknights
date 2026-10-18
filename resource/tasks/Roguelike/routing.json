@@ -182,6 +182,13 @@
             "JieGarden@RoguelikeMapNode-Scheme.png"
         ]
     },
+    "JieGarden@RoguelikeRouting-BoskyPassagePriority_TestStrategy": {
+        "doc": ["测试策略树洞优先级配置：常乐 > 易与"],
+        "template": [
+            "JieGarden@RoguelikeMapNode-Playtime.png",
+            "JieGarden@RoguelikeMapNode-YiTrader.png"
+        ]
+    },
     "JieGarden@RoguelikeRoutingAction-ExitThenAbandon": {
         "algorithm": "JustReturn",
         "next": ["JieGarden@Roguelike@ExitThenAbandon"]

@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string_view>
+#include <unordered_set>
 #include <utility>
 
 #include "AbstractRoguelikeTaskPlugin.h"
@@ -26,6 +27,7 @@ public:
     virtual ~RoguelikeStageEncounterTaskPlugin() override = default;
 
     virtual bool verify(AsstMsg msg, const json::value& details) const override;
+    virtual void reset_in_run_variables() override;
 
     void set_blackflow_session(std::shared_ptr<blackflow::BlackFlowSession> session)
     {
@@ -88,6 +90,7 @@ private:
 
     std::shared_ptr<blackflow::BlackFlowSession> m_blackflow_session;
     std::string m_reported_event_name;
+    std::unordered_set<size_t> m_logged_playtime_positions;
     OptionAnalyzer::Result m_option_list;
     size_t m_view_begin = 0;
     size_t m_view_end = 0;

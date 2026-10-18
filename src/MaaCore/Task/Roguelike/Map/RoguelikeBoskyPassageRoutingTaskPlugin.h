@@ -19,6 +19,7 @@ public:
         None,
         BoskyPassage_JieGarden,
         FindPlaytime_JieGarden,
+        TestStrategy_JieGarden,
     };
 
 protected:

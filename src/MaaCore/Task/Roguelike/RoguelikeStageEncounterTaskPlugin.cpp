@@ -60,6 +60,11 @@ bool asst::RoguelikeStageEncounterTaskPlugin::verify(AsstMsg msg, const json::va
     }
 }
 
+void asst::RoguelikeStageEncounterTaskPlugin::reset_in_run_variables()
+{
+    m_logged_playtime_positions.clear();
+}
+
 bool asst::RoguelikeStageEncounterTaskPlugin::_run()
 {
     LogTraceFunction;
@@ -176,14 +181,31 @@ std::optional<std::string> asst::RoguelikeStageEncounterTaskPlugin::handle_singl
     // 界园树洞
     if (m_config->get_theme() == RoguelikeTheme::JieGarden) {
         auto& bosky_map = RoguelikeBoskyPassageMap::get_instance();
+        std::string playtime_type;
         if (event.name == "掷地有声") {
             bosky_map.set_node_subtype(bosky_map.get_curr_pos(), RoguelikeBoskySubNodeType::Ling);
+            playtime_type = "掷地有声 (令)";
         }
         else if (event.name == "种因得果") {
             bosky_map.set_node_subtype(bosky_map.get_curr_pos(), RoguelikeBoskySubNodeType::Shu);
+            playtime_type = "种因得果 (黍)";
         }
         else if (event.name == "三缺一") {
             bosky_map.set_node_subtype(bosky_map.get_curr_pos(), RoguelikeBoskySubNodeType::Nian);
+            playtime_type = "三缺一 (年)";
+        }
+
+        if (m_config->get_mode() == RoguelikeMode::TestStrategy && !playtime_type.empty()) {
+            if (m_logged_playtime_positions.insert(bosky_map.get_curr_pos()).second) {
+                LogInfo << "========================================";
+                LogInfo << "[JieGarden TestStrategy] Playtime node: " << playtime_type;
+                LogInfo << "========================================";
+
+                auto info = basic_info_with_what("RoguelikeTestStrategyPlaytime");
+                info["details"]["playtime_type"] = playtime_type;
+                info["details"]["event_name"] = event.name;
+                callback(AsstMsg::SubTaskExtraInfo, info);
+            }
         }
 
         if (bosky_map.get_target_subtype() != RoguelikeBoskySubNodeType::Unknown) {

@@ -26,6 +26,12 @@ bool asst::RoguelikeBoskyPassageRoutingTaskPlugin::load_params([[maybe_unused]] 
             return true;
         }
 
+        if (m_config->get_mode() == RoguelikeMode::TestStrategy) {
+            m_bosky_routing_strategy = RoutingStrategy::TestStrategy_JieGarden;
+            Log.info(__FUNCTION__, "| TestStrategy mode enabled for bosky passage");
+            return true;
+        }
+
         m_bosky_routing_strategy = RoutingStrategy::BoskyPassage_JieGarden;
         return true;
     }
@@ -84,6 +90,12 @@ bool asst::RoguelikeBoskyPassageRoutingTaskPlugin::_run()
             subtype2name(RoguelikeBoskyPassageMap::get_instance().get_target_subtype()));
 
         // 尝试找到目标节点，使用常乐节点优先的策略
+        bosky_decide_and_click(priority_order);
+        break;
+    }
+    case RoutingStrategy::TestStrategy_JieGarden: {
+        bosky_update_map();
+        const std::vector<RoguelikeNodeType> priority_order = get_bosky_passage_priority("TestStrategy");
         bosky_decide_and_click(priority_order);
         break;
     }

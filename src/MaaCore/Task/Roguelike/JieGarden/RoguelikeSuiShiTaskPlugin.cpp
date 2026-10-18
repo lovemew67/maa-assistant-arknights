@@ -5,8 +5,12 @@
 #include "Controller/Controller.h"
 #include "Task/ProcessTask.h"
 #include "Utils/Logger.hpp"
+#include "Utils/StringMisc.hpp"
 #include "Vision/OCRer.h"
 
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <opencv2/core.hpp>
 
 namespace asst
@@ -35,6 +39,51 @@ static const std::vector<SuiShiDefinition> ALL_SUISHI_DEFINITIONS = {
     { "亥食", "敬刻十二催饭香，入时亲属饱肚肠", "余", { "亥食", "十二催饭香", "十二催飯香", "催饭香", "催飯香", "饱肚肠", "飽肚腸", "承名为余", "承名為余", "承名余" } }
 };
 
+static std::string get_slack_webhook_url()
+{
+    // 1. Try environment variable
+    if (const char* env_url = std::getenv("SLACK_WEBHOOK_URL")) {
+        std::string s = env_url;
+        utils::string_trim(s);
+        if (!s.empty()) {
+            return s;
+        }
+    }
+
+    // 2. Fallback: parse ~/.zprofile directly (needed for macOS GUI apps not launched from terminal)
+    const char* home = std::getenv("HOME");
+    if (!home) {
+        return {};
+    }
+    std::filesystem::path zprofile_path = std::filesystem::path(home) / ".zprofile";
+    std::ifstream ifs(zprofile_path);
+    if (!ifs.is_open()) {
+        return {};
+    }
+
+    std::string line;
+    while (std::getline(ifs, line)) {
+        utils::string_trim(line);
+        if (line.starts_with("#")) {
+            continue;
+        }
+        if (line.starts_with("export ")) {
+            line = line.substr(7);
+            utils::string_trim(line);
+        }
+        if (line.starts_with("SLACK_WEBHOOK_URL=")) {
+            std::string val = line.substr(18);
+            utils::string_trim(val);
+            if ((val.starts_with("\"") && val.ends_with("\"")) ||
+                (val.starts_with("'") && val.ends_with("'"))) {
+                val = val.substr(1, val.length() - 2);
+            }
+            return val;
+        }
+    }
+    return {};
+}
+
 bool RoguelikeSuiShiTaskPlugin::verify(AsstMsg msg, const json::value& details) const
 {
     if (msg != AsstMsg::SubTaskStart || details.get("subtask", std::string()) != "ProcessTask") {
@@ -52,7 +101,8 @@ bool RoguelikeSuiShiTaskPlugin::verify(AsstMsg msg, const json::value& details) 
         task_view.remove_prefix(roguelike_name.length());
     }
 
-    if (task_view == "Roguelike@TestStrategyLogSuiShi") {
+    if (task_view == "Roguelike@TestStrategyLogSuiShi" || task_view == "Roguelike@TestStrategyLogYiTraderGoods") {
+        m_current_task = std::string(task_view);
         return true;
     }
 
@@ -74,6 +124,7 @@ bool RoguelikeSuiShiTaskPlugin::verify(AsstMsg msg, const json::value& details) 
 void RoguelikeSuiShiTaskPlugin::reset_in_run_variables()
 {
     m_saved_suishi.clear();
+    m_current_task.clear();
 }
 
 std::string RoguelikeSuiShiTaskPlugin::detect_suishi_from_image(const cv::Mat& image) const
@@ -127,6 +178,12 @@ bool RoguelikeSuiShiTaskPlugin::_run()
 {
     LogTraceFunction;
 
+    if (m_current_task == "Roguelike@TestStrategyLogYiTraderGoods") {
+        m_current_task.clear();
+        return log_yitrader_goods();
+    }
+    m_current_task.clear();
+
     std::string detected = m_saved_suishi;
     if (detected.empty()) {
         cv::Mat image = ctrler()->get_image();
@@ -162,6 +219,156 @@ bool RoguelikeSuiShiTaskPlugin::_run()
     }
 
     m_saved_suishi.clear();
+    return true;
+}
+
+bool RoguelikeSuiShiTaskPlugin::log_yitrader_goods()
+{
+    LogTraceFunction;
+
+    sleep(1000); // 等待货架与商品渲染完成
+    cv::Mat image = ctrler()->get_image();
+    if (image.empty()) {
+        LogError << __FUNCTION__ << "Failed to capture image for YiTrader goods";
+        return true;
+    }
+
+    OCRer analyzer(image);
+    analyzer.set_task_info("RoguelikeTraderShoppingOcr");
+    auto results_opt = analyzer.analyze();
+
+    struct CandidateItem
+    {
+        std::string text;
+        int x = 0;
+    };
+    std::vector<CandidateItem> candidates;
+
+    if (results_opt && !results_opt->empty()) {
+        for (const auto& item : *results_opt) {
+            // 真正商品标题的 Y 坐标在 160 ~ 210（通常为 179~182），排除下方价格与按键区域
+            if (item.rect.y < 160 || item.rect.y > 210) {
+                continue;
+            }
+
+            std::string text = item.text;
+            utils::string_trim(text);
+            if (text.empty() || text.length() < 2) {
+                continue;
+            }
+
+            // 过滤纯数字与价格
+            bool all_digit = true;
+            for (char c : text) {
+                if (!std::isdigit(static_cast<unsigned char>(c)) && c != ' ') {
+                    all_digit = false;
+                    break;
+                }
+            }
+            if (all_digit) {
+                continue;
+            }
+
+            // 过滤无关提示词与价格词汇
+            if (text.find("售罄") != std::string::npos || text.find("折") != std::string::npos ||
+                text.find("OFF") != std::string::npos || text.find("價格") != std::string::npos ||
+                text.find("价格") != std::string::npos) {
+                continue;
+            }
+
+            candidates.push_back({ text, item.rect.x });
+        }
+    }
+
+    // 按横向位置从左到右排序（匹配货架格子顺序）
+    std::sort(candidates.begin(), candidates.end(), [](const CandidateItem& a, const CandidateItem& b) {
+        return a.x < b.x;
+    });
+
+    std::vector<std::string> goods_list;
+    for (const auto& c : candidates) {
+        if (std::find(goods_list.begin(), goods_list.end(), c.text) == goods_list.end()) {
+            goods_list.push_back(c.text);
+        }
+    }
+
+    std::string goods_str;
+    if (goods_list.empty()) {
+        goods_str = "None";
+    }
+    else {
+        for (size_t i = 0; i < goods_list.size(); ++i) {
+            if (i > 0) {
+                goods_str += ", ";
+            }
+            goods_str += goods_list[i];
+        }
+    }
+
+    LogInfo << "========================================";
+    LogInfo << "[JieGarden TestStrategy] YiTrader goods for sale: " << goods_str;
+    LogInfo << "========================================";
+
+    json::array goods_arr;
+    for (const auto& g : goods_list) {
+        goods_arr.push_back(g);
+    }
+    callback(
+        AsstMsg::SubTaskExtraInfo,
+        json::object { { "task", "TestStrategyLogYiTraderGoods" },
+                       { "what", "YiTraderGoodsDetected" },
+                       { "details", json::object { { "goods", std::move(goods_arr) } } } });
+
+    // 检查是否遇到稀有藏品：醒时塔 / 醒時塔
+    bool found_waking_tower = false;
+    for (const auto& g : goods_list) {
+        std::string clean_name = g;
+        utils::string_replace_all_in_place(clean_name, " ", "");
+        utils::string_replace_all_in_place(clean_name, "\t", "");
+        if (clean_name.find("醒时塔") != std::string::npos || clean_name.find("醒時塔") != std::string::npos) {
+            found_waking_tower = true;
+            break;
+        }
+    }
+
+    if (found_waking_tower) {
+        LogInfo << "========================================";
+        LogInfo << "[JieGarden TestStrategy] Rare collectible ｢醒时塔｣ detected!";
+        LogInfo << "[JieGarden TestStrategy] Sending Slack webhook notification...";
+        LogInfo << "========================================";
+
+        std::string webhook_url = get_slack_webhook_url();
+        if (!webhook_url.empty()) {
+            std::string curl_cmd =
+                "/usr/bin/curl -s --request POST --header 'Content-type: application/json' "
+                "--data '{\"text\":\"發現稀有藏品\"}' "
+                "--location '" + webhook_url + "'";
+            int ret = std::system(curl_cmd.c_str());
+            LogInfo << "[JieGarden TestStrategy] Slack webhook sent, exit code:" << ret;
+        }
+
+        // 1. 完整退出游戏 (Force-stop Arknights game)
+        LogInfo << "[JieGarden TestStrategy] Force-stopping Arknights game...";
+        for (const auto& client : { "txwy", "Official", "Bilibili", "YoStarEN", "YoStarJP", "YoStarKR" }) {
+            ctrler()->stop_game(client);
+        }
+        sleep(1000);
+
+        // 2. 清空剩余肉鸽探索次数并终止任务
+        LogInfo << "[JieGarden TestStrategy] Clearing remaining roguelike exploration count and terminating task...";
+        if (auto process_ptr = dynamic_cast<ProcessTask*>(m_task_ptr)) {
+            process_ptr->set_times_limit(m_config->get_theme() + "@Roguelike@StartExplore", 0);
+            process_ptr->set_times_limit("Roguelike@StartExplore", 0);
+        }
+        if (m_task_ptr) {
+            m_task_ptr->set_enable(false);
+        }
+        if (m_control_ptr) {
+            m_control_ptr->set_enable(false);
+        }
+        return false;
+    }
+
     return true;
 }
 

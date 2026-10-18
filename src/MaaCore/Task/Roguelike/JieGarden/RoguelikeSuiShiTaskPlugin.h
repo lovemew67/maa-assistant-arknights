@@ -27,9 +27,11 @@ protected:
 
 private:
     std::string detect_suishi_from_image(const cv::Mat& image) const;
+    bool log_yitrader_goods();
 
 private:
     mutable std::string m_saved_suishi;
+    mutable std::string m_current_task;
 };
 
 } // namespace asst
