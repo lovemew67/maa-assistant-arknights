@@ -319,21 +319,37 @@ bool RoguelikeSuiShiTaskPlugin::log_yitrader_goods()
                        { "what", "YiTraderGoodsDetected" },
                        { "details", json::object { { "goods", std::move(goods_arr) } } } });
 
-    // 检查是否遇到稀有藏品：醒时塔 / 醒時塔
-    bool found_waking_tower = false;
+    // 检查是否遇到目标稀有藏品："国王的新枪" / "魔王的床榻" / "扣挠之手"
+    static const std::vector<std::pair<std::string, std::vector<std::string>>> TARGET_COLLECTIBLES = {
+        { "国王的新枪", { "国王的新枪", "國王的新槍", "国王的新槍", "國王的新枪" } },
+        { "魔王的床榻", { "魔王的床榻" } },
+        { "扣挠之手", { "扣挠之手", "扣撓之手" } },
+    };
+
+    std::string matched_collectible;
     for (const auto& g : goods_list) {
         std::string clean_name = g;
         utils::string_replace_all_in_place(clean_name, " ", "");
         utils::string_replace_all_in_place(clean_name, "\t", "");
-        if (clean_name.find("醒时塔") != std::string::npos || clean_name.find("醒時塔") != std::string::npos) {
-            found_waking_tower = true;
+        for (const auto& [name, keywords] : TARGET_COLLECTIBLES) {
+            for (const auto& kw : keywords) {
+                if (clean_name.find(kw) != std::string::npos) {
+                    matched_collectible = name;
+                    break;
+                }
+            }
+            if (!matched_collectible.empty()) {
+                break;
+            }
+        }
+        if (!matched_collectible.empty()) {
             break;
         }
     }
 
-    if (found_waking_tower) {
+    if (!matched_collectible.empty()) {
         LogInfo << "========================================";
-        LogInfo << "[JieGarden TestStrategy] Rare collectible ｢醒时塔｣ detected!";
+        LogInfo << "[JieGarden TestStrategy] Rare collectible ｢" << matched_collectible << "｣ detected!";
         LogInfo << "[JieGarden TestStrategy] Sending Slack webhook notification...";
         LogInfo << "========================================";
 
@@ -341,7 +357,9 @@ bool RoguelikeSuiShiTaskPlugin::log_yitrader_goods()
         if (!webhook_url.empty()) {
             std::string curl_cmd =
                 "/usr/bin/curl -s --request POST --header 'Content-type: application/json' "
-                "--data '{\"text\":\"發現稀有藏品\"}' "
+                "--data '{\"text\":\"發現稀有藏品: " +
+                matched_collectible +
+                "\"}' "
                 "--location '" + webhook_url + "'";
             int ret = std::system(curl_cmd.c_str());
             LogInfo << "[JieGarden TestStrategy] Slack webhook sent, exit code:" << ret;
