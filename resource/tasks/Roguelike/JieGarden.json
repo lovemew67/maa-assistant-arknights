@@ -1257,6 +1257,21 @@
         "next": ["JieGarden@Roguelike@ClickRemainingCandleFlame"],
         "onErrorNext": ["JieGarden@Roguelike@ExitThenAbandon"]
     },
+    "JieGarden@Roguelike@Stages_testStrategyFloor2": {
+        "Doc": "测试策略第 2 层：记录岁时并退出",
+        "algorithm": "JustReturn",
+        "next": [
+            "JieGarden@Roguelike@TestStrategyLogSuiShi",
+            "JieGarden@Roguelike@ExitThenAbandon"
+        ],
+        "onErrorNext": ["JieGarden@Roguelike@ExitThenAbandon"]
+    },
+    "JieGarden@Roguelike@TestStrategyLogSuiShi": {
+        "Doc": "测试策略：检测并记录当前岁时",
+        "algorithm": "JustReturn",
+        "next": ["JieGarden@Roguelike@ExitThenAbandon"],
+        "onErrorNext": ["JieGarden@Roguelike@ExitThenAbandon"]
+    },
     "JieGarden@Roguelike@Stages_pragmatic": {
         "Doc": "避紧急作战,3-4层策略",
         "algorithm": "JustReturn",
@@ -1393,7 +1408,20 @@
     },
     "JieGarden@Roguelike@StrategyChange_mode20002": {
         "Doc": "测试策略",
-        "baseTask": "JieGarden@Roguelike@StrategyChange_mode0"
+        "text": ["_default", "_testStrategyFloor2", "_leaveBoskyPassage"],
+        "ocrReplace": [
+            ["洪[陆陸]楼", "_default"],
+            ["山水[阁閣]", "_testStrategyFloor2"],
+            ["[云雲](瓦)?(亭|亨)", "_testStrategyFloor2"],
+            ["汝吾[门門]?", "_testStrategyFloor2"],
+            ["[见見]字(祠|柯)", "_testStrategyFloor2"],
+            ["始末陵", "_testStrategyFloor2"],
+            ["是非(境|坍)", "_leaveBoskyPassage"]
+        ],
+        "roi": [627, 14, 71, 28],
+        "withoutDet": true,
+        "binThreshold": [200, 255],
+        "useRaw": false
     },
     "JieGarden@Roguelike@StrategyChange_mode4": {
         "text": ["_default", "_exit", "_leaveBoskyPassage"],

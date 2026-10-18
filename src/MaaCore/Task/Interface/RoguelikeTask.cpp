@@ -44,6 +44,7 @@
 
 // ------------------ 界园主题专用配置及插件 ------------------
 #include "Task/Roguelike/JieGarden/RoguelikeCoppersTaskPlugin.h"
+#include "Task/Roguelike/JieGarden/RoguelikeSuiShiTaskPlugin.h"
 
 // ------------------ 黑流树海主题专用配置及插件 ------------------
 #include "Task/Roguelike/BlackFlow/BlackFlowCultivationTaskPlugin.h"
@@ -124,6 +125,7 @@ asst::RoguelikeTask::RoguelikeTask(const AsstCallback& callback, Assistant* inst
 
     // ------------------ 界园主题专用插件 ------------------
     m_roguelike_task_ptr->register_plugin<RoguelikeCoppersTaskPlugin>(m_config_ptr, m_control_ptr);
+    m_roguelike_task_ptr->register_plugin<RoguelikeSuiShiTaskPlugin>(m_config_ptr, m_control_ptr);
 
     // ------------------ 黑流树海主题专用插件 ------------------
     m_blackflow_map_source_ptr = std::make_shared<blackflow::BlackFlowMapObservationSource>();

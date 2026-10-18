@@ -207,6 +207,17 @@
             ["是非境", "_boskyPassageDefault"]
         ]
     },
+    "JieGarden@Roguelike@StrategyChange_mode20002": {
+        "ocrReplace": [
+            ["洪陸樓", "_default"],
+            ["山水閣", "_testStrategyFloor2"],
+            ["雲(瓦)?(亭|亨)", "_testStrategyFloor2"],
+            ["汝吾(門)?", "_testStrategyFloor2"],
+            ["見字(祠|柯)", "_testStrategyFloor2"],
+            ["始末陵", "_testStrategyFloor2"],
+            ["是非境", "_leaveBoskyPassage"]
+        ]
+    },
     "JieGarden@Roguelike@StrategyChange_mode4": {
         "ocrReplace": [
             ["洪陸樓", "_default"],

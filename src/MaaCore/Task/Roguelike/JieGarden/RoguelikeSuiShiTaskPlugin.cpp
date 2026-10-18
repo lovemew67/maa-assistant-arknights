@@ -1,0 +1,168 @@
+#include "RoguelikeSuiShiTaskPlugin.h"
+
+#include "Common/AsstTypes.h"
+#include "Config/TaskData.h"
+#include "Controller/Controller.h"
+#include "Task/ProcessTask.h"
+#include "Utils/Logger.hpp"
+#include "Vision/OCRer.h"
+
+#include <opencv2/core.hpp>
+
+namespace asst
+{
+
+struct SuiShiDefinition
+{
+    std::string name;
+    std::string verse;
+    std::string patron;
+    std::vector<std::string> keywords;
+};
+
+static const std::vector<SuiShiDefinition> ALL_SUISHI_DEFINITIONS = {
+    { "子武", "敬刻一道破勇力，入时者畏惧退避", "重岳", { "子武", "一道破勇力", "破勇力", "畏惧退避", "畏懼退避", "承名重岳" } },
+    { "丑谋", "敬刻二思算八方，入时者移步尽失", "望", { "丑谋", "丑謀", "二思算八方", "思算八方", "移步尽失", "移步盡失", "承名为望", "承名為望", "承名望" } },
+    { "寅诗", "敬刻三白日逍遥，入时者所思非人", "令", { "寅诗", "寅詩", "三白日逍遥", "三白日逍遙", "白日逍遥", "白日逍遙", "所思非人", "承名为令", "承名為令", "承名令" } },
+    { "卯律", "敬刻四天音传法，入时者难逾规矩", "均", { "卯律", "四天音传法", "四天音傳法", "天音传法", "天音傳法", "难逾规矩", "難逾規矩", "承名为均", "承名為均", "承名均" } },
+    { "辰■", "敬刻五授道解惑，入时者不分■■", "颉", { "五授道解惑", "授道解惑", "不分", "承名为颉", "承名為頡", "承名颉", "承名頡" } },
+    { "巳农", "敬刻六谷稻丰足，入时者朴食多餐", "黍", { "巳农", "巳農", "六谷稻丰足", "六穀稻豐足", "谷稻丰足", "穀稻豐足", "朴食多餐", "樸食多餐", "承名为黍", "承名為黍", "承名黍" } },
+    { "午商", "敬刻七长绢聚富，入时者不知财数", "绩", { "午商", "七长绢聚富", "七長絹聚富", "长绢聚富", "長絹聚富", "不知财数", "不知財數", "承名为绩", "承名為績", "承名绩", "承名績" } },
+    { "未建", "敬刻八筑巧藏珍，入时者流连难返", "易", { "未建", "八筑巧藏珍", "八築巧藏珍", "筑巧藏珍", "築巧藏珍", "流连难返", "流連難返", "承名为易", "承名為易", "承名易" } },
+    { "申铸", "敬刻九铸金熔火，入时者得见其妙", "年", { "申铸", "申鑄", "九铸金熔火", "九鑄金熔火", "铸金熔火", "鑄金熔火", "得见其妙", "得見其妙", "承名为年", "承名為年", "承名年" } },
+    { "酉疗", "敬刻十抚伤愈痕，入时者以眠抗害", "方", { "酉疗", "酉療", "十抚伤愈痕", "十撫傷愈痕", "抚伤愈痕", "撫傷愈痕", "以眠抗害", "承名为方", "承名為方", "承名方" } },
+    { "戌绘", "敬刻十一卷生花，入时者皆赏便符", "夕", { "戌绘", "戌繪", "十一卷生花", "卷生花", "皆赏便符", "皆賞便符", "承名为夕", "承名為夕", "承名夕" } },
+    { "亥食", "敬刻十二催饭香，入时亲属饱肚肠", "余", { "亥食", "十二催饭香", "十二催飯香", "催饭香", "催飯香", "饱肚肠", "飽肚腸", "承名为余", "承名為余", "承名余" } }
+};
+
+bool RoguelikeSuiShiTaskPlugin::verify(AsstMsg msg, const json::value& details) const
+{
+    if (msg != AsstMsg::SubTaskStart || details.get("subtask", std::string()) != "ProcessTask") {
+        return false;
+    }
+
+    if (m_config->get_theme() != RoguelikeTheme::JieGarden) {
+        return false;
+    }
+
+    const std::string roguelike_name = m_config->get_theme() + "@";
+    const std::string& task = details.get("details", "task", "");
+    std::string_view task_view = task;
+    if (task_view.starts_with(roguelike_name)) {
+        task_view.remove_prefix(roguelike_name.length());
+    }
+
+    if (task_view == "Roguelike@TestStrategyLogSuiShi") {
+        return true;
+    }
+
+    if (m_config->get_mode() == RoguelikeMode::TestStrategy && m_saved_suishi.empty()) {
+        if (task_view.ends_with("NextLevel") || task_view.ends_with("CloseCollectionContinue") ||
+            task_view.ends_with("StrategyChange")) {
+            cv::Mat image = ctrler()->get_image();
+            std::string detected = detect_suishi_from_image(image);
+            if (!detected.empty()) {
+                m_saved_suishi = std::move(detected);
+                LogInfo << __FUNCTION__ << "captured SuiShi during transition:" << m_saved_suishi;
+            }
+        }
+    }
+
+    return false;
+}
+
+void RoguelikeSuiShiTaskPlugin::reset_in_run_variables()
+{
+    m_saved_suishi.clear();
+}
+
+std::string RoguelikeSuiShiTaskPlugin::detect_suishi_from_image(const cv::Mat& image) const
+{
+    if (image.empty()) {
+        return {};
+    }
+
+    OCRer analyzer(image);
+    auto results_opt = analyzer.analyze();
+    if (!results_opt || results_opt->empty()) {
+        return {};
+    }
+
+    std::string full_text;
+    for (const auto& item : *results_opt) {
+        full_text += item.text;
+    }
+
+    std::string level;
+    if (full_text.find("醒觉") != std::string::npos || full_text.find("醒覺") != std::string::npos) {
+        level = "醒觉";
+    }
+    else if (full_text.find("入髓") != std::string::npos) {
+        level = "入髓";
+    }
+    else if (full_text.find("真切") != std::string::npos) {
+        level = "真切";
+    }
+    else if (full_text.find("朦胧") != std::string::npos || full_text.find("朦朧") != std::string::npos) {
+        level = "朦胧";
+    }
+
+    for (const auto& suishi : ALL_SUISHI_DEFINITIONS) {
+        for (const auto& kw : suishi.keywords) {
+            if (full_text.find(kw) != std::string::npos) {
+                std::string res = suishi.name;
+                if (!level.empty()) {
+                    res += "（" + level + "）";
+                }
+                res += " - " + suishi.verse;
+                return res;
+            }
+        }
+    }
+
+    return {};
+}
+
+bool RoguelikeSuiShiTaskPlugin::_run()
+{
+    LogTraceFunction;
+
+    std::string detected = m_saved_suishi;
+    if (detected.empty()) {
+        cv::Mat image = ctrler()->get_image();
+        detected = detect_suishi_from_image(image);
+    }
+
+    if (detected.empty()) {
+        LogInfo << __FUNCTION__ << "SuiShi not visible on screen, trying to open SuiShi detail popup from top bar...";
+        ctrler()->click(Point(718, 25));
+        sleep(600);
+        cv::Mat popup_image = ctrler()->get_image();
+        detected = detect_suishi_from_image(popup_image);
+
+        // 点击空白处关闭详情弹窗
+        ctrler()->click(Point(640, 450));
+        sleep(300);
+    }
+
+    if (!detected.empty()) {
+        LogInfo << "========================================";
+        LogInfo << "[JieGarden TestStrategy] Current SuiShi:" << detected;
+        LogInfo << "========================================";
+        callback(
+            AsstMsg::SubTaskExtraInfo,
+            json::object { { "task", "TestStrategyLogSuiShi" },
+                           { "what", "SuiShiDetected" },
+                           { "details", json::object { { "suishi", detected } } } });
+    }
+    else {
+        LogInfo << "========================================";
+        LogInfo << "[JieGarden TestStrategy] Current SuiShi: None detected at Floor 2 (current difficulty may not have SuiShi)";
+        LogInfo << "========================================";
+    }
+
+    m_saved_suishi.clear();
+    return true;
+}
+
+} // namespace asst

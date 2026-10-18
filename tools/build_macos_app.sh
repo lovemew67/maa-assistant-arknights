@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 OUTPUT_DIR="${REPO_ROOT}/dist"
-APP_NAME="maa-zzh.app"
+APP_NAME="MAA ZZH.app"
 BUILD_TYPE="Release"
 INSTALL_TO_APPLICATIONS=false
 CLEAN=false
@@ -18,7 +18,7 @@ MAA macOS App Builder (Apple Silicon / M1-M4 Mac)
 Usage: $(basename "$0") [options]
 
 Options:
-  --app-name <name>      Target App name (default: maa-zzh.app)
+  --app-name <name>      Target App name (default: MAA ZZH.app)
   --install              Automatically install to /Applications/<app-name>
   --clean                Clean prior build artifacts before building
   --output-dir <path>    Destination directory for App (default: ./dist)
@@ -176,11 +176,11 @@ cp -R MAA.app "${TARGET_APP_PATH}"
 # Customize Bundle Name and Display Name
 DISPLAY_NAME="${APP_NAME%.app}"
 echo "==> Configuring app display name to '${DISPLAY_NAME}'..."
-/usr/libexec/PlistBuddy -c "Set :CFBundleName ${DISPLAY_NAME}" "${TARGET_APP_PATH}/Contents/Info.plist" 2>/dev/null || \
-/usr/libexec/PlistBuddy -c "Add :CFBundleName string ${DISPLAY_NAME}" "${TARGET_APP_PATH}/Contents/Info.plist" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleName '${DISPLAY_NAME}'" "${TARGET_APP_PATH}/Contents/Info.plist" 2>/dev/null || \
+/usr/libexec/PlistBuddy -c "Add :CFBundleName string '${DISPLAY_NAME}'" "${TARGET_APP_PATH}/Contents/Info.plist" 2>/dev/null || true
 
-/usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName ${DISPLAY_NAME}" "${TARGET_APP_PATH}/Contents/Info.plist" 2>/dev/null || \
-/usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string ${DISPLAY_NAME}" "${TARGET_APP_PATH}/Contents/Info.plist" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName '${DISPLAY_NAME}'" "${TARGET_APP_PATH}/Contents/Info.plist" 2>/dev/null || \
+/usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string '${DISPLAY_NAME}'" "${TARGET_APP_PATH}/Contents/Info.plist" 2>/dev/null || true
 
 echo "==> Applying Ad-Hoc code signature to ${APP_NAME}..."
 codesign --force --deep --sign - "${TARGET_APP_PATH}"
