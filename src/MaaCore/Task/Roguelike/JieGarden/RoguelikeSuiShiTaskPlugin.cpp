@@ -7,6 +7,7 @@
 #include "Utils/Logger.hpp"
 #include "Utils/StringMisc.hpp"
 #include "Vision/OCRer.h"
+#include "TradSimpHelper.h"
 
 #include <cstdlib>
 #include <filesystem>
@@ -251,32 +252,12 @@ bool RoguelikeSuiShiTaskPlugin::log_yitrader_goods()
                 continue;
             }
 
-            std::string text = item.text;
-            utils::string_trim(text);
-            if (text.empty() || text.length() < 2) {
+            std::string text = clean_and_simplify_product_name(item.text);
+            if (text.empty()) {
                 continue;
             }
 
-            // 过滤纯数字与价格
-            bool all_digit = true;
-            for (char c : text) {
-                if (!std::isdigit(static_cast<unsigned char>(c)) && c != ' ') {
-                    all_digit = false;
-                    break;
-                }
-            }
-            if (all_digit) {
-                continue;
-            }
-
-            // 过滤无关提示词与价格词汇
-            if (text.find("售罄") != std::string::npos || text.find("折") != std::string::npos ||
-                text.find("OFF") != std::string::npos || text.find("價格") != std::string::npos ||
-                text.find("价格") != std::string::npos) {
-                continue;
-            }
-
-            candidates.push_back({ text, item.rect.x });
+            candidates.push_back({ std::move(text), item.rect.x });
         }
     }
 
@@ -320,24 +301,16 @@ bool RoguelikeSuiShiTaskPlugin::log_yitrader_goods()
                        { "details", json::object { { "goods", std::move(goods_arr) } } } });
 
     // 检查是否遇到目标稀有藏品："国王的新枪" / "扣挠之手"
-    static const std::vector<std::pair<std::string, std::vector<std::string>>> TARGET_COLLECTIBLES = {
-        { "国王的新枪", { "国王的新枪", "國王的新槍", "国王的新槍", "國王的新枪" } },
-        { "扣挠之手", { "扣挠之手", "扣撓之手" } },
+    static const std::vector<std::string> TARGET_COLLECTIBLES = {
+        "国王的新枪",
+        "扣挠之手",
     };
 
     std::string matched_collectible;
     for (const auto& g : goods_list) {
-        std::string clean_name = g;
-        utils::string_replace_all_in_place(clean_name, " ", "");
-        utils::string_replace_all_in_place(clean_name, "\t", "");
-        for (const auto& [name, keywords] : TARGET_COLLECTIBLES) {
-            for (const auto& kw : keywords) {
-                if (clean_name.find(kw) != std::string::npos) {
-                    matched_collectible = name;
-                    break;
-                }
-            }
-            if (!matched_collectible.empty()) {
+        for (const auto& target : TARGET_COLLECTIBLES) {
+            if (g.find(target) != std::string::npos) {
+                matched_collectible = target;
                 break;
             }
         }

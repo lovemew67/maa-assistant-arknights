@@ -12,8 +12,9 @@ import sys
 import re
 import json
 import time
+import threading
 import argparse
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
 DEFAULT_LOG_PATH = os.path.expanduser("~/Library/Application Support/debug/asst.log")
@@ -35,6 +36,35 @@ ALL_SUISHI_CONFIG = [
 ]
 
 SUISHI_MAP = {s["branch"]: s for s in ALL_SUISHI_CONFIG}
+
+TRAD_SIMP_CLEAN_MAP = None
+
+def get_trad_simp_map():
+    global TRAD_SIMP_CLEAN_MAP
+    if TRAD_SIMP_CLEAN_MAP is None:
+        json_path = os.path.join(os.path.dirname(__file__), "trad_simp_clean.json")
+        if os.path.exists(json_path):
+            with open(json_path, "r", encoding="utf-8") as jf:
+                TRAD_SIMP_CLEAN_MAP = json.load(jf)
+        else:
+            TRAD_SIMP_CLEAN_MAP = {}
+    return TRAD_SIMP_CLEAN_MAP
+
+def clean_and_simplify_py(text):
+    for ch in ["\"", "'", "“", "”", "‘", "’", "「", "」", "『", "』", "《", "》", "【", "】", "〈", "〉", "〔", "〕", "*", "^", "#", "~", "_", "·"]:
+        text = text.replace(ch, "")
+    text = text.strip(". ,-*#^~_	 ")
+    if any(k in text for k in ["售罄", "折", "OFF", "價格", "价格", "NEW", "HOT"]) or text == "UP":
+        return ""
+    if not text or len(text) < 2 or all(c.isdigit() or c in " ," for c in text):
+        return ""
+    m = get_trad_simp_map()
+    res = "".join(m.get(c, c) for c in text)
+    corrections = { "甲贵": "甲胄", "帐第": "帐簿", "帐薄": "帐簿", "苍柯": "苍桐" }
+    for k, v in corrections.items():
+        res = res.replace(k, v)
+    return res
+
 
 HTML_CONTENT = """<!DOCTYPE html>
 <html lang="zh-Hant">
@@ -1050,13 +1080,16 @@ def parse_log_events(include_bak=False):
                     m_yi = re_yitrader.search(line)
                     if m_yi:
                         t = m_yi.group("time")
-                        goods = m_yi.group("goods").strip()
+                        raw_goods = m_yi.group("goods").strip()
+                        cleaned_items = [clean_and_simplify_py(g) for g in raw_goods.split(",")]
+                        cleaned_items = [g for g in cleaned_items if g]
+                        goods_str = ", ".join(cleaned_items) if cleaned_items else "None"
                         events.append(
                             {
                                 "time": t,
                                 "category": "yitrader",
                                 "is_target": False,
-                                "title": f"易與商店商品: {goods}",
+                                "title": f"易與商店商品: {goods_str}",
                                 "level": "",
                                 "extra": "",
                             }
@@ -1161,27 +1194,104 @@ def parse_log_events(include_bak=False):
     }
 
 
-class SuiShiMonitorHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        parsed = urlparse(self.path)
-        if parsed.path == "/" or parsed.path == "/index.html":
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(HTML_CONTENT.encode("utf-8"))
-        elif parsed.path == "/api/status":
-            qs = parse_qs(parsed.query)
-            include_bak = qs.get("bak", ["0"])[0] == "1"
-            data = parse_log_events(include_bak=include_bak)
-            body = json.dumps(data, ensure_ascii=False).encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            self.wfile.write(body)
+_cache_lock = threading.Lock()
+_status_cache = {
+    "key": None,
+    "body": b"",
+}
+
+
+def get_cached_status_bytes(include_bak=False):
+    files = [DEFAULT_LOG_PATH]
+    if include_bak:
+        files.insert(0, DEFAULT_BAK_LOG_PATH)
+
+    file_signatures = []
+    for fp in files:
+        if os.path.exists(fp):
+            try:
+                st = os.stat(fp)
+                file_signatures.append((fp, st.st_mtime, st.st_size))
+            except OSError:
+                file_signatures.append((fp, 0, 0))
         else:
-            self.send_response(404)
-            self.end_headers()
+            file_signatures.append((fp, -1, -1))
+
+    cache_key = (tuple(file_signatures), include_bak)
+
+    with _cache_lock:
+        if _status_cache["key"] == cache_key:
+            return _status_cache["body"]
+
+    data = parse_log_events(include_bak=include_bak)
+    body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+
+    with _cache_lock:
+        _status_cache["key"] = cache_key
+        _status_cache["body"] = body
+
+    return body
+
+
+class SuiShiMonitorHandler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+    timeout = 5
+
+    def do_HEAD(self):
+        try:
+            parsed = urlparse(self.path)
+            if parsed.path == "/" or parsed.path == "/index.html":
+                body = HTML_CONTENT.encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Connection", "close")
+                self.end_headers()
+            elif parsed.path == "/api/status":
+                qs = parse_qs(parsed.query)
+                include_bak = qs.get("bak", ["0"])[0] == "1"
+                body = get_cached_status_bytes(include_bak=include_bak)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Connection", "close")
+                self.end_headers()
+            else:
+                self.send_response(404)
+                self.send_header("Connection", "close")
+                self.end_headers()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+    def do_GET(self):
+        try:
+            parsed = urlparse(self.path)
+            if parsed.path == "/" or parsed.path == "/index.html":
+                body = HTML_CONTENT.encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Connection", "close")
+                self.end_headers()
+                self.wfile.write(body)
+            elif parsed.path == "/api/status":
+                qs = parse_qs(parsed.query)
+                include_bak = qs.get("bak", ["0"])[0] == "1"
+                body = get_cached_status_bytes(include_bak=include_bak)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Connection", "close")
+                self.end_headers()
+                self.wfile.write(body)
+            else:
+                self.send_response(404)
+                self.send_header("Connection", "close")
+                self.end_headers()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def log_message(self, format, *args):
         # Silence routine request logging to keep terminal tidy
@@ -1208,9 +1318,11 @@ def main():
 
     port = args.port
     server = None
+    ThreadingHTTPServer.allow_reuse_address = True
     for p in [port, port + 1, port + 2, 8000, 8888]:
         try:
-            server = HTTPServer((args.host, p), SuiShiMonitorHandler)
+            server = ThreadingHTTPServer((args.host, p), SuiShiMonitorHandler)
+            server.daemon_threads = True
             port = p
             break
         except OSError:
