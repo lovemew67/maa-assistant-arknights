@@ -85,6 +85,29 @@ static std::string get_slack_webhook_url()
     return {};
 }
 
+static void send_slack_notification(const std::string& text)
+{
+    std::string webhook_url = get_slack_webhook_url();
+    if (webhook_url.empty()) {
+        LogWarn << "[JieGarden TestStrategy] SLACK_WEBHOOK_URL not set in env or ~/.zprofile, skipping Slack notification";
+        return;
+    }
+
+    LogInfo << "[JieGarden TestStrategy] Sending Slack webhook notification...";
+    std::string escaped_text = text;
+    utils::string_replace_all_in_place(escaped_text, "\\", "\\\\");
+    utils::string_replace_all_in_place(escaped_text, "\"", "\\\"");
+
+    std::string curl_cmd =
+        "/usr/bin/curl -s --request POST --header 'Content-type: application/json' "
+        "--data '{\"text\":\"" +
+        escaped_text +
+        "\"}' "
+        "--location '" + webhook_url + "'";
+    int ret = std::system(curl_cmd.c_str());
+    LogInfo << "[JieGarden TestStrategy] Slack webhook sent, exit code:" << ret;
+}
+
 bool RoguelikeSuiShiTaskPlugin::verify(AsstMsg msg, const json::value& details) const
 {
     if (msg != AsstMsg::SubTaskStart || details.get("subtask", std::string()) != "ProcessTask") {
@@ -212,6 +235,16 @@ bool RoguelikeSuiShiTaskPlugin::_run()
             json::object { { "task", "TestStrategyLogSuiShi" },
                            { "what", "SuiShiDetected" },
                            { "details", json::object { { "suishi", detected } } } });
+
+        // 检查是否为隐藏岁时：辰（颉）、酉（方）
+        bool is_hidden_suishi = (detected.find("辰") != std::string::npos || detected.find("酉") != std::string::npos ||
+                                 detected.find("颉") != std::string::npos || detected.find("頡") != std::string::npos);
+        if (is_hidden_suishi) {
+            LogInfo << "========================================";
+            LogInfo << "[JieGarden TestStrategy] Hidden SuiShi detected (辰 / 酉):" << detected;
+            LogInfo << "========================================";
+            send_slack_notification("發現隱藏歲時: " + detected);
+        }
     }
     else {
         LogInfo << "========================================";
@@ -322,20 +355,9 @@ bool RoguelikeSuiShiTaskPlugin::log_yitrader_goods()
     if (!matched_collectible.empty()) {
         LogInfo << "========================================";
         LogInfo << "[JieGarden TestStrategy] Rare collectible ｢" << matched_collectible << "｣ detected!";
-        LogInfo << "[JieGarden TestStrategy] Sending Slack webhook notification...";
         LogInfo << "========================================";
 
-        std::string webhook_url = get_slack_webhook_url();
-        if (!webhook_url.empty()) {
-            std::string curl_cmd =
-                "/usr/bin/curl -s --request POST --header 'Content-type: application/json' "
-                "--data '{\"text\":\"發現稀有藏品: " +
-                matched_collectible +
-                "\"}' "
-                "--location '" + webhook_url + "'";
-            int ret = std::system(curl_cmd.c_str());
-            LogInfo << "[JieGarden TestStrategy] Slack webhook sent, exit code:" << ret;
-        }
+        send_slack_notification("發現稀有藏品: " + matched_collectible);
 
         // 1. 完整退出游戏 (Force-stop Arknights game)
         LogInfo << "[JieGarden TestStrategy] Force-stopping Arknights game...";
