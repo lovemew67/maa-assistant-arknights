@@ -333,9 +333,8 @@ bool RoguelikeSuiShiTaskPlugin::log_yitrader_goods()
                        { "what", "YiTraderGoodsDetected" },
                        { "details", json::object { { "goods", std::move(goods_arr) } } } });
 
-    // 检查是否遇到目标稀有藏品："国王的新枪" / "扣挠之手"
+    // 检查是否遇到目标稀有藏品："扣挠之手"
     static const std::vector<std::string> TARGET_COLLECTIBLES = {
-        "国王的新枪",
         "扣挠之手",
     };
 
