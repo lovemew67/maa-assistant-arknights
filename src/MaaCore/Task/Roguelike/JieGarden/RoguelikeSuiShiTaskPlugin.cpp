@@ -236,12 +236,11 @@ bool RoguelikeSuiShiTaskPlugin::_run()
                            { "what", "SuiShiDetected" },
                            { "details", json::object { { "suishi", detected } } } });
 
-        // 检查是否为隐藏岁时：辰（颉）、酉（方）
-        bool is_hidden_suishi = (detected.find("辰") != std::string::npos || detected.find("酉") != std::string::npos ||
-                                 detected.find("颉") != std::string::npos || detected.find("頡") != std::string::npos);
+        // 检查是否为隐藏岁时：酉（方）
+        bool is_hidden_suishi = (detected.find("酉") != std::string::npos);
         if (is_hidden_suishi) {
             LogInfo << "========================================";
-            LogInfo << "[JieGarden TestStrategy] Hidden SuiShi detected (辰 / 酉):" << detected;
+            LogInfo << "[JieGarden TestStrategy] Hidden SuiShi detected (酉):" << detected;
             LogInfo << "========================================";
             send_slack_notification("發現隱藏歲時: " + detected);
         }

@@ -13,6 +13,7 @@ import re
 import json
 import time
 import threading
+import socket
 import argparse
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -25,7 +26,7 @@ ALL_SUISHI_CONFIG = [
     {"branch": "丑", "name": "丑谋", "operator": "望", "verse": "敬刻二思算八方，入时者移步尽失", "is_target": False},
     {"branch": "寅", "name": "寅诗", "operator": "令", "verse": "敬刻三白日逍遥，入时者所思非人", "is_target": False},
     {"branch": "卯", "name": "卯律", "operator": "均", "verse": "敬刻四天音传法，入时者难逾规矩", "is_target": False},
-    {"branch": "辰", "name": "辰■", "operator": "颉", "verse": "敬刻五授道解惑，入时者不分■■", "is_target": True},
+    {"branch": "辰", "name": "辰■", "operator": "颉", "verse": "敬刻五授道解惑，入时者不分■■", "is_target": False},
     {"branch": "巳", "name": "巳农", "operator": "黍", "verse": "敬刻六谷稻丰足，入时者朴食多餐", "is_target": False},
     {"branch": "午", "name": "午商", "operator": "绩", "verse": "敬刻七长绢聚富，入时者不知财数", "is_target": False},
     {"branch": "未", "name": "未建", "operator": "易", "verse": "敬刻八筑巧藏珍，入时者流连难返", "is_target": False},
@@ -588,9 +589,9 @@ HTML_CONTENT = """<!DOCTYPE html>
             <div id="cardChen" class="target-card">
                 <div class="target-card-header">
                     <div style="display: flex; gap: 14px; align-items: center;">
-                        <div class="target-badge">辰</div>
+                        <div class="target-badge" style="background: rgba(148, 163, 184, 0.2); color: var(--text-secondary); border-color: rgba(148, 163, 184, 0.4);">辰</div>
                         <div class="target-info">
-                            <h3>辰■ <span style="font-size: 15px; color: var(--accent-amber);">【目標歲時】</span></h3>
+                            <h3>辰■ <span style="font-size: 14px; color: var(--text-secondary);">【已達成 / 非目標】</span></h3>
                             <div class="target-patron">化身 / 承名：颉</div>
                         </div>
                     </div>
@@ -636,7 +637,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                 <div class="stat-value" id="statTotalRuns">-</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">目標命中總數 (辰+酉)</div>
+                <div class="stat-label">目標命中總數 (酉)</div>
                 <div class="stat-value" id="statTargetHits" style="color: var(--accent-amber);">-</div>
             </div>
             <div class="stat-card">
@@ -671,7 +672,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
             <div class="filter-tabs">
                 <button class="tab-btn active" onclick="setFilter('all', this)">全部流水 (<span id="countTabAll">0</span>)</button>
-                <button class="tab-btn" onclick="setFilter('target', this)">🎯 僅看辰與酉 (<span id="countTabTarget">0</span>)</button>
+                <button class="tab-btn" onclick="setFilter('target', this)">🎯 僅看目標酉 (<span id="countTabTarget">0</span>)</button>
                 <button class="tab-btn" onclick="setFilter('suishi', this)">📜 歲時識別 (<span id="countTabSuishi">0</span>)</button>
                 <button class="tab-btn" onclick="setFilter('yitrader', this)">🛒 易與貨架 (<span id="countTabYi">0</span>)</button>
                 <button class="tab-btn" onclick="setFilter('playtime', this)">🎭 常樂節點 (<span id="countTabPlay">0</span>)</button>
@@ -822,10 +823,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                 statusYou.innerHTML = '<span class="pulse-dot"></span><span>尚未刷出</span>';
             }
 
-            // Trigger alert on new hit
-            if (previousChenCount >= 0 && chen.count > previousChenCount) {
-                triggerTargetAlert('辰■', chen.last_time);
-            }
+            // Trigger alert on new hit (target: You)
             if (previousYouCount >= 0 && you.count > previousYouCount) {
                 triggerTargetAlert('酉疗', you.last_time);
             }
@@ -834,7 +832,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
             // Stats
             document.getElementById('statTotalRuns').textContent = data.summary.total_runs;
-            document.getElementById('statTargetHits').textContent = chen.count + you.count;
+            document.getElementById('statTargetHits').textContent = you.count;
             document.getElementById('statDetectedCount').textContent = data.summary.detected_count;
             document.getElementById('statNoneCount').textContent = data.summary.none_count;
             document.getElementById('statRareRelicCount').textContent = data.summary.rare_relic_count;
@@ -1059,9 +1057,7 @@ def parse_log_events(include_bak=False):
                         else:
                             detected_count += 1
                             is_target = (
-                                "辰" in raw
-                                or "酉" in raw
-                                or "颉" in raw
+                                "酉" in raw
                                 or "方" in raw
                             )
                             events.append(
@@ -1298,6 +1294,17 @@ class SuiShiMonitorHandler(BaseHTTPRequestHandler):
         pass
 
 
+class DualStackServer(ThreadingHTTPServer):
+    address_family = socket.AF_INET6
+
+    def server_bind(self):
+        try:
+            self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+        except (AttributeError, OSError):
+            pass
+        super().server_bind()
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="JieGarden SuiShi & Strategy Live Monitor Server"
@@ -1311,22 +1318,30 @@ def main():
     parser.add_argument(
         "--host",
         type=str,
-        default="0.0.0.0",
-        help="Host address to bind (default: 0.0.0.0)",
+        default="::",
+        help="Host address to bind (default: :: for dual-stack IPv4/IPv6)",
     )
     args = parser.parse_args()
 
     port = args.port
     server = None
-    ThreadingHTTPServer.allow_reuse_address = True
     for p in [port, port + 1, port + 2, 8000, 8888]:
         try:
-            server = ThreadingHTTPServer((args.host, p), SuiShiMonitorHandler)
+            DualStackServer.allow_reuse_address = True
+            server = DualStackServer((args.host, p), SuiShiMonitorHandler)
             server.daemon_threads = True
             port = p
             break
         except OSError:
-            continue
+            try:
+                ThreadingHTTPServer.allow_reuse_address = True
+                fallback_host = "0.0.0.0" if args.host in ("::", "") else args.host
+                server = ThreadingHTTPServer((fallback_host, p), SuiShiMonitorHandler)
+                server.daemon_threads = True
+                port = p
+                break
+            except OSError:
+                continue
 
     if not server:
         print(f"Failed to bind any port starting from {args.port}", file=sys.stderr)
