@@ -4,7 +4,7 @@
 """
 JieGarden SuiShi & Strategy Live Monitor Server
 Monitors /Users/zzh/Library/Application Support/debug/asst.log (and asst.bak.log)
-Checks if '辰' (颉) or '酉' (方) SuiShi has been rolled, along with shop goods and playtime nodes.
+Checks SuiShi rolled, along with shop goods and playtime nodes.
 """
 
 import os
@@ -31,7 +31,7 @@ ALL_SUISHI_CONFIG = [
     {"branch": "午", "name": "午商", "operator": "绩", "verse": "敬刻七长绢聚富，入时者不知财数", "is_target": False},
     {"branch": "未", "name": "未建", "operator": "易", "verse": "敬刻八筑巧藏珍，入时者流连难返", "is_target": False},
     {"branch": "申", "name": "申铸", "operator": "年", "verse": "敬刻九铸金熔火，入时者得见其妙", "is_target": False},
-    {"branch": "酉", "name": "酉疗", "operator": "方", "verse": "敬刻十抚伤愈痕，入时者以眠抗害", "is_target": True},
+    {"branch": "酉", "name": "酉疗", "operator": "方", "verse": "敬刻十抚伤愈痕，入时者以眠抗害", "is_target": False},
     {"branch": "戌", "name": "戌绘", "operator": "夕", "verse": "敬刻十一卷生花，入时者皆赏便符", "is_target": False},
     {"branch": "亥", "name": "亥食", "operator": "余", "verse": "敬刻十二催饭香，入时亲属饱肚肠", "is_target": False},
 ]
@@ -611,9 +611,9 @@ HTML_CONTENT = """<!DOCTYPE html>
             <div id="cardYou" class="target-card">
                 <div class="target-card-header">
                     <div style="display: flex; gap: 14px; align-items: center;">
-                        <div class="target-badge">酉</div>
+                        <div class="target-badge" style="background: rgba(148, 163, 184, 0.2); color: var(--text-secondary); border-color: rgba(148, 163, 184, 0.4);">酉</div>
                         <div class="target-info">
-                            <h3>酉疗 <span style="font-size: 15px; color: var(--accent-amber);">【目標歲時】</span></h3>
+                            <h3>酉疗 <span style="font-size: 14px; color: var(--text-secondary);">【已達成 / 非目標】</span></h3>
                             <div class="target-patron">化身 / 承名：方</div>
                         </div>
                     </div>
@@ -637,16 +637,16 @@ HTML_CONTENT = """<!DOCTYPE html>
                 <div class="stat-value" id="statTotalRuns">-</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">目標命中總數 (酉)</div>
-                <div class="stat-value" id="statTargetHits" style="color: var(--accent-amber);">-</div>
-            </div>
-            <div class="stat-card">
                 <div class="stat-label">成功辨識歲時數</div>
                 <div class="stat-value" id="statDetectedCount" style="color: var(--accent-cyan);">-</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">未檢測到歲時 (1層/未刷出)</div>
                 <div class="stat-value" id="statNoneCount" style="color: var(--text-muted);">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">目標命中總數</div>
+                <div class="stat-value" id="statTargetHits" style="color: var(--accent-amber);">-</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">稀有藏品觸發</div>
@@ -672,7 +672,6 @@ HTML_CONTENT = """<!DOCTYPE html>
 
             <div class="filter-tabs">
                 <button class="tab-btn active" onclick="setFilter('all', this)">全部流水 (<span id="countTabAll">0</span>)</button>
-                <button class="tab-btn" onclick="setFilter('target', this)">🎯 僅看目標酉 (<span id="countTabTarget">0</span>)</button>
                 <button class="tab-btn" onclick="setFilter('suishi', this)">📜 歲時識別 (<span id="countTabSuishi">0</span>)</button>
                 <button class="tab-btn" onclick="setFilter('yitrader', this)">🛒 易與貨架 (<span id="countTabYi">0</span>)</button>
                 <button class="tab-btn" onclick="setFilter('playtime', this)">🎭 常樂節點 (<span id="countTabPlay">0</span>)</button>
@@ -823,16 +822,12 @@ HTML_CONTENT = """<!DOCTYPE html>
                 statusYou.innerHTML = '<span class="pulse-dot"></span><span>尚未刷出</span>';
             }
 
-            // Trigger alert on new hit (target: You)
-            if (previousYouCount >= 0 && you.count > previousYouCount) {
-                triggerTargetAlert('酉疗', you.last_time);
-            }
             previousChenCount = chen.count;
             previousYouCount = you.count;
 
             // Stats
             document.getElementById('statTotalRuns').textContent = data.summary.total_runs;
-            document.getElementById('statTargetHits').textContent = you.count;
+            document.getElementById('statTargetHits').textContent = 0;
             document.getElementById('statDetectedCount').textContent = data.summary.detected_count;
             document.getElementById('statNoneCount').textContent = data.summary.none_count;
             document.getElementById('statRareRelicCount').textContent = data.summary.rare_relic_count;
@@ -882,7 +877,8 @@ HTML_CONTENT = """<!DOCTYPE html>
 
         function updateTimelineCounts() {
             document.getElementById('countTabAll').textContent = allEvents.length;
-            document.getElementById('countTabTarget').textContent = allEvents.filter(e => e.is_target).length;
+            const targetEl = document.getElementById('countTabTarget');
+            if (targetEl) targetEl.textContent = allEvents.filter(e => e.is_target).length;
             document.getElementById('countTabSuishi').textContent = allEvents.filter(e => e.category === 'suishi').length;
             document.getElementById('countTabYi').textContent = allEvents.filter(e => e.category === 'yitrader').length;
             document.getElementById('countTabPlay').textContent = allEvents.filter(e => e.category === 'playtime').length;
@@ -1056,10 +1052,7 @@ def parse_log_events(include_bak=False):
                             )
                         else:
                             detected_count += 1
-                            is_target = (
-                                "酉" in raw
-                                or "方" in raw
-                            )
+                            is_target = False
                             events.append(
                                 {
                                     "time": t,
