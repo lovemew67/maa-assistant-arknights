@@ -183,7 +183,7 @@
         ]
     },
     "JieGarden@RoguelikeRouting-BoskyPassagePriority_TestStrategy": {
-        "doc": ["测试策略树洞优先级配置：常乐 > 易与"],
+        "doc": ["刷稀有藏品与隐藏岁时树洞优先级配置：常乐 > 易与"],
         "template": [
             "JieGarden@RoguelikeMapNode-Playtime.png",
             "JieGarden@RoguelikeMapNode-YiTrader.png"

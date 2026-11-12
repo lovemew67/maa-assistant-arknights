@@ -1,5 +1,5 @@
 diff --git a/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift b/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift
-index a6ce36a..7f09843 100644
+index a6ce36a..433581a 100644
 --- a/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift	
 +++ b/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift	
 @@ -234,6 +234,8 @@ extension RoguelikeConfiguration.Mode {
@@ -7,21 +7,21 @@ index a6ce36a..7f09843 100644
          case (.findPlaytime, _):
              String(localized: "刷常乐节点，第一层进洞，找不到需要的节点就重开")
 +        case (.testStrategy, _):
-+            String(localized: "测试策略，用于测试界园肉鸽流程")
++            String(localized: "刷稀有藏品與隱藏歲時，第一層進洞刷常樂與易與，第二層記錄歲時並退出")
          case (.babyAnimal, _):
              String(localized: "刷襁褓动物")
          }
 diff --git a/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift b/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift
-index 9a80703..e1e749e 100644
+index 9a80703..0cdc494 100644
 --- a/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift	
 +++ b/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift	
 @@ -29,6 +29,10 @@ struct RoguelikeConfiguration: MAATaskConfiguration {
          ///
          /// 界园主题专用模式
          case findPlaytime = 20001
-+        /// 测试策略
++        /// 刷稀有藏品與隱藏歲時
 +        ///
-+        /// 界园主题专用测试模式
++        /// 界园主题专用模式
 +        case testStrategy = 20002
          /// 刷襁褓动物
          ///
@@ -40,7 +40,7 @@ index 9a80703..e1e749e 100644
          case .findPlaytime:
              String(localized: "刷常乐节点")
 +        case .testStrategy:
-+            String(localized: "测试策略")
++            String(localized: "刷稀有藏品與隱藏歲時")
          case .babyAnimal:
              String(localized: "刷襁褓动物")
          }

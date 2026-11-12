@@ -1180,7 +1180,7 @@
         ]
     },
     "JieGarden@Roguelike@TestStrategyLogYiTraderGoods": {
-        "Doc": "测试策略：检测并记录易与节点出售的藏品",
+        "Doc": "刷稀有藏品与隐藏岁时：检测并记录易与节点出售的藏品",
         "template": "Roguelike@StageTraderLeave.png",
         "roi": [1046, 443, 234, 204],
         "action": "DoNothing",
@@ -1272,7 +1272,7 @@
         "onErrorNext": ["JieGarden@Roguelike@ExitThenAbandon"]
     },
     "JieGarden@Roguelike@Stages_testStrategyFloor2": {
-        "Doc": "测试策略第 2 层：记录岁时并退出",
+        "Doc": "刷稀有藏品与隐藏岁时第 2 层：记录岁时并退出",
         "algorithm": "JustReturn",
         "next": [
             "JieGarden@Roguelike@TestStrategyLogSuiShi",
@@ -1281,7 +1281,7 @@
         "onErrorNext": ["JieGarden@Roguelike@ExitThenAbandon"]
     },
     "JieGarden@Roguelike@TestStrategyLogSuiShi": {
-        "Doc": "测试策略：检测并记录当前岁时",
+        "Doc": "刷稀有藏品与隐藏岁时：检测并记录当前岁时",
         "algorithm": "JustReturn",
         "next": ["JieGarden@Roguelike@ExitThenAbandon"],
         "onErrorNext": ["JieGarden@Roguelike@ExitThenAbandon"]
@@ -1421,7 +1421,7 @@
         "useRaw": false
     },
     "JieGarden@Roguelike@StrategyChange_mode20002": {
-        "Doc": "测试策略",
+        "Doc": "刷稀有藏品与隐藏岁时",
         "text": ["_default", "_testStrategyFloor2", "_boskyPassageDefault"],
         "ocrReplace": [
             ["洪[陆陸]楼", "_default"],
