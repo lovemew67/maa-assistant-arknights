@@ -1,5 +1,5 @@
 diff --git a/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift b/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift
-index a6ce36a..cad13e3 100644
+index a6ce36a..43bb7d7 100644
 --- a/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift	
 +++ b/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift	
 @@ -40,6 +40,7 @@ struct RoguelikeSettingsView: View {
@@ -10,7 +10,7 @@ index a6ce36a..cad13e3 100644
  
          TextField("最多探索次数", value: $config.starts_count, format: .number)
      }
-@@ -63,6 +64,7 @@ struct RoguelikeSettingsView: View {
+@@ -63,14 +64,17 @@ struct RoguelikeSettingsView: View {
                  Text(squad).tag(squad)
              }
          }
@@ -18,15 +18,17 @@ index a6ce36a..cad13e3 100644
  
          Picker("开局职业组", selection: $config.roles) {
              ForEach(config.theme.roles, id: \.self) { role in
-@@ -71,6 +73,7 @@ struct RoguelikeSettingsView: View {
+                 Text(role).tag(role)
+             }
          }
++        .disabled(config.mode == .reverseMeterDiff0)
  
          TextField("开局干员（单个）", text: $config.core_char)
 +            .disabled(config.mode == .reverseMeterDiff0)
  
          HStack {
              Toggle("“开局干员”使用助战", isOn: $config.use_support)
-@@ -234,6 +237,12 @@ extension RoguelikeConfiguration.Mode {
+@@ -234,6 +238,12 @@ extension RoguelikeConfiguration.Mode {
              String(localized: "刷深入调查，尽可能稳定地打更多层数")
          case (.findPlaytime, _):
              String(localized: "刷常乐节点，第一层进洞，找不到需要的节点就重开")
@@ -40,7 +42,7 @@ index a6ce36a..cad13e3 100644
              String(localized: "刷襁褓动物")
          }
 diff --git a/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift b/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift
-index 9a80703..be468e1 100644
+index 9a80703..a2925e1 100644
 --- a/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift	
 +++ b/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift	
 @@ -29,6 +29,18 @@ struct RoguelikeConfiguration: MAATaskConfiguration {
@@ -62,7 +64,7 @@ index 9a80703..be468e1 100644
          /// 刷襁褓动物
          ///
          /// 黑流树海主题专用模式
-@@ -98,6 +110,15 @@ struct RoguelikeConfiguration: MAATaskConfiguration {
+@@ -98,6 +110,16 @@ struct RoguelikeConfiguration: MAATaskConfiguration {
              use_foldartal = mode != .clpPds
              check_collapsal_paradigms = mode == .clpPds
              if mode == .investment { investment_enabled = true }
@@ -73,12 +75,13 @@ index 9a80703..be468e1 100644
 +            if mode == .reverseMeterDiff0 {
 +                difficulty = .init(id: 0)
 +                squad = "特勤分队"
++                roles = "灵活部署"
 +                core_char = "电弧"
 +            }
              if theme == .BlackFlow { investment_with_more_score = false }
          }
      }
-@@ -283,7 +304,7 @@ extension RoguelikeConfiguration.Theme {
+@@ -283,7 +305,7 @@ extension RoguelikeConfiguration.Theme {
          case .Sami:
              return commonModes + [.clpPds]
          case .JieGarden:
@@ -87,7 +90,7 @@ index 9a80703..be468e1 100644
          case .BlackFlow:
              return [.exp, .investment, .babyAnimal]
          default:
-@@ -309,6 +330,12 @@ extension RoguelikeConfiguration.Mode {
+@@ -309,6 +331,12 @@ extension RoguelikeConfiguration.Mode {
              String(localized: "深入调查")
          case .findPlaytime:
              String(localized: "刷常乐节点")
@@ -100,7 +103,7 @@ index 9a80703..be468e1 100644
          case .babyAnimal:
              String(localized: "刷襁褓动物")
          }
-@@ -420,6 +447,7 @@ extension RoguelikeConfiguration {
+@@ -420,6 +448,7 @@ extension RoguelikeConfiguration {
      }
  
      fileprivate var checkedJiePlaytimeTarget: Int? {
@@ -108,14 +111,15 @@ index 9a80703..be468e1 100644
          guard theme == .JieGarden, mode == .findPlaytime else { return nil }
          return jieFindPlaytimeTarget.rawValue
      }
-@@ -434,13 +462,13 @@ extension RoguelikeConfiguration.Params {
+@@ -434,13 +463,13 @@ extension RoguelikeConfiguration.Params {
      init(config: RoguelikeConfiguration) {
          self.theme = config.theme.rawValue
          self.mode = config.mode.rawValue
 -        self.squad = config.squad
-+        self.squad = config.mode == .reverseMeter ? "后勤分队" : (config.mode == .reverseMeterDiff0 ? "特勤分队" : config.squad)
-         self.roles = config.roles
+-        self.roles = config.roles
 -        self.core_char = config.core_char
++        self.squad = config.mode == .reverseMeter ? "后勤分队" : (config.mode == .reverseMeterDiff0 ? "特勤分队" : config.squad)
++        self.roles = config.mode == .reverseMeterDiff0 ? "灵活部署" : config.roles
 +        self.core_char = config.mode == .reverseMeterDiff0 ? "电弧" : config.core_char
          self.use_support = config.use_support
          self.use_nonfriend_support = config.use_support ? config.use_nonfriend_support : nil

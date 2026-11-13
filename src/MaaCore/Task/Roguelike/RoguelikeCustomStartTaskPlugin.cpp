@@ -89,7 +89,11 @@ bool asst::RoguelikeCustomStartTaskPlugin::load_params(const json::value& params
     if (m_config->get_mode() == RoguelikeMode::ReverseMeterDiff0) {
         m_config->set_start_opers({ { .name = "电弧", .use_support = false } });
     }
-    set_custom(RoguelikeCustomType::Roles, params.get("roles", ""));                 // 开局职业组
+    std::string roles = params.get("roles", "");
+    if (m_config->get_mode() == RoguelikeMode::ReverseMeterDiff0) {
+        roles = "灵活部署";
+    }
+    set_custom(RoguelikeCustomType::Roles, roles);                                   // 开局职业组
     m_config->set_use_nonfriend_support(params.get("use_nonfriend_support", false)); // 是否可以是非好友助战干员
 
     if (auto select_list = params.find<json::object>("collectible_mode_start_list"); select_list) {

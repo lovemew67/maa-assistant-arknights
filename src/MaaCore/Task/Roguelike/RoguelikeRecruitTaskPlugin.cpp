@@ -44,6 +44,9 @@ bool asst::RoguelikeRecruitTaskPlugin::verify(AsstMsg msg, const json::value& de
 bool asst::RoguelikeRecruitTaskPlugin::load_params(const json::value& params)
 {
     m_start_roles = params.get("roles", std::string());
+    if (m_config->get_mode() == RoguelikeMode::ReverseMeterDiff0) {
+        m_start_roles = "灵活部署";
+    }
     return true;
 }
 
