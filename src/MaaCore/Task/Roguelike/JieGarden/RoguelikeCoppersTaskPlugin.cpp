@@ -132,18 +132,16 @@ asst::CopperTaskResult asst::RoguelikeCoppersTaskPlugin::handle_pickup_mode()
             LogInfo << "========================================";
             LogInfo << "[ReverseMeterDiff0] Found ｢花-茧成绢｣ in battle drops!";
             LogInfo << "========================================";
-        }
-        else if (!m_config->has_cocoon()) {
-            LogInfo << "========================================";
-            LogInfo << "[ReverseMeterDiff0] ｢花-茧成绢｣ not found in Floor 1 battle drops, restarting...";
-            LogInfo << "========================================";
 
             Task.set_task_base(
                 m_config->get_theme() + "@Roguelike@Stages",
-                m_config->get_theme() + "@Roguelike@Stages_restart");
-            Task.set_task_base(
-                "RoguelikeRoutingAction",
-                m_config->get_theme() + "@RoguelikeRoutingAction-ExitThenAbandon");
+                m_config->get_theme() + "@Roguelike@Stages_default");
+        }
+        else {
+            LogInfo << "========================================";
+            LogInfo << "[ReverseMeterDiff0] ｢花-茧成绢｣ not found in current battle drops (has_cocoon="
+                    << (m_config->has_cocoon() ? "true" : "false") << "), checking for remaining Floor 1 battles...";
+            LogInfo << "========================================";
         }
     }
 

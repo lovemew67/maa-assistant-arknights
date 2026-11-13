@@ -222,7 +222,20 @@
         "baseTask": "JieGarden@Roguelike@StrategyChange_mode20001"
     },
     "JieGarden@Roguelike@StrategyChange_mode20004": {
-        "baseTask": "JieGarden@Roguelike@StrategyChange_mode20001"
+        "text": ["_reverseMeterDiff0Floor1", "_restart", "_boskyPassageDefault"],
+        "ocrReplace": [
+            ["洪陸樓", "_reverseMeterDiff0Floor1"],
+            ["山水閣", "_restart"],
+            ["雲(瓦)?(亭|亨)", "_restart"],
+            ["汝吾(門)?", "_restart"],
+            ["見字(祠|柯)", "_restart"],
+            ["始末陵", "_restart"],
+            ["是非境", "_boskyPassageDefault"]
+        ],
+        "roi": [627, 14, 71, 28],
+        "withoutDet": true,
+        "binThreshold": [200, 255],
+        "useRaw": false
     },
     "JieGarden@Roguelike@StrategyChange_mode4": {
         "ocrReplace": [

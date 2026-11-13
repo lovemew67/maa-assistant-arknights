@@ -1229,6 +1229,17 @@
             "JieGarden@Roguelike@Stages_leaveBoskyPassage#next"
         ]
     },
+    "JieGarden@Roguelike@Stages_reverseMeterDiff0Floor1": {
+        "Doc": "难度零令姐醇厚古法：第一层只打战斗，未获得茧成绢时无战斗则重开",
+        "algorithm": "JustReturn",
+        "next": [
+            "JieGarden@Roguelike@Stages@(JieGarden@Roguelike@CloseCollectionContinue)",
+            "JieGarden@Roguelike@Stages@(JieGarden@Roguelike@CloseCollectionClose)",
+            "JieGarden@Roguelike@StageEmergencyOps",
+            "JieGarden@Roguelike@StageCombatOps"
+        ],
+        "onErrorNext": ["JieGarden@Roguelike@ExitThenAbandon"]
+    },
     "JieGarden@Roguelike@Stages_default": {
         "Doc": "avoid battle,其他模式和5-6层策略",
         "algorithm": "JustReturn",
@@ -1443,7 +1454,20 @@
     },
     "JieGarden@Roguelike@StrategyChange_mode20004": {
         "Doc": "难度零令姐醇厚古法全厉钱电表倒转",
-        "baseTask": "JieGarden@Roguelike@StrategyChange_mode20001"
+        "text": ["_reverseMeterDiff0Floor1", "_restart", "_boskyPassageDefault"],
+        "ocrReplace": [
+            ["洪陆楼", "_reverseMeterDiff0Floor1"],
+            ["山水阁", "_restart"],
+            ["云(瓦)?(亭|亨)", "_restart"],
+            ["汝吾(门)?", "_restart"],
+            ["见字祠", "_restart"],
+            ["始末陵", "_restart"],
+            ["是非(境|坍)", "_boskyPassageDefault"]
+        ],
+        "roi": [627, 14, 71, 28],
+        "withoutDet": true,
+        "binThreshold": [200, 255],
+        "useRaw": false
     },
     "JieGarden@Roguelike@StrategyChange_mode4": {
         "text": ["_default", "_exit", "_leaveBoskyPassage"],
