@@ -222,6 +222,7 @@
         "baseTask": "JieGarden@Roguelike@StrategyChange_mode20001"
     },
     "JieGarden@Roguelike@StrategyChange_mode20004": {
+        "baseTask": "JieGarden@Roguelike@StrategyChange_mode20001",
         "text": ["_reverseMeterDiff0Floor1", "_restart", "_boskyPassageDefault"],
         "ocrReplace": [
             ["洪陸樓", "_reverseMeterDiff0Floor1"],
