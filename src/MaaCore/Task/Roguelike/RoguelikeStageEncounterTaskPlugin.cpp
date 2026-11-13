@@ -10,6 +10,7 @@
 #include "MaaUtils/NoWarningCV.hpp"
 #include "Task/ProcessTask.h"
 #include "Task/Roguelike/BlackFlow/BlackFlowSession.h"
+#include "Task/Roguelike/JieGarden/SlackNotifier.h"
 #include "Task/Roguelike/Map/RoguelikeBoskyPassageMap.h"
 #include "Utils/DebugImageHelper.hpp"
 #include "Utils/Logger.hpp"
@@ -182,13 +183,13 @@ std::optional<std::string> asst::RoguelikeStageEncounterTaskPlugin::handle_singl
     if (m_config->get_theme() == RoguelikeTheme::JieGarden) {
         auto& bosky_map = RoguelikeBoskyPassageMap::get_instance();
         std::string playtime_type;
-        if (event.name == "掷地有声") {
+        if (event.name == "掷地有声" || event.name == "擲地有聲") {
             bosky_map.set_node_subtype(bosky_map.get_curr_pos(), RoguelikeBoskySubNodeType::Ling);
-            playtime_type = "掷地有声 (令)";
+            playtime_type = "擲地有聲 (令)";
         }
-        else if (event.name == "种因得果") {
+        else if (event.name == "种因得果" || event.name == "種因得果") {
             bosky_map.set_node_subtype(bosky_map.get_curr_pos(), RoguelikeBoskySubNodeType::Shu);
-            playtime_type = "种因得果 (黍)";
+            playtime_type = "種因得果 (黍)";
         }
         else if (event.name == "三缺一") {
             bosky_map.set_node_subtype(bosky_map.get_curr_pos(), RoguelikeBoskySubNodeType::Nian);
@@ -208,6 +209,10 @@ std::optional<std::string> asst::RoguelikeStageEncounterTaskPlugin::handle_singl
             }
         }
 
+        if (m_config->get_mode() == RoguelikeMode::ReverseMeter) {
+            bosky_map.set_target_subtype(RoguelikeBoskySubNodeType::Ling);
+        }
+
         if (bosky_map.get_target_subtype() != RoguelikeBoskySubNodeType::Unknown) {
             if (bosky_map.get_node_subtype(bosky_map.get_curr_pos()) == bosky_map.get_target_subtype()) {
                 Log.info(__FUNCTION__, "| Found target playtime node, completing task and exiting");
@@ -216,9 +221,33 @@ std::optional<std::string> asst::RoguelikeStageEncounterTaskPlugin::handle_singl
                 target_info["details"]["target_subtype"] = subtype2name(bosky_map.get_target_subtype());
                 callback(AsstMsg::SubTaskExtraInfo, target_info);
 
-                // 完成任务，退出
-                m_control_ptr->exit_then_stop();
-                m_task_ptr->set_enable(false);
+                std::string target_desc =
+                    playtime_type.empty() ? subtype2name(bosky_map.get_target_subtype()) : playtime_type;
+                LogInfo << "========================================";
+                LogInfo << "[JieGarden] Found target playtime node: " << target_desc;
+                LogInfo << "========================================";
+
+                send_slack_notification("發現目標常樂: " + target_desc);
+
+                // 1. 完整退出游戏 (Force-stop Arknights game)
+                LogInfo << "[JieGarden] Force-stopping Arknights game...";
+                for (const auto& client : { "txwy", "Official", "Bilibili", "YoStarEN", "YoStarJP", "YoStarKR" }) {
+                    ctrler()->stop_game(client);
+                }
+                sleep(1000);
+
+                // 2. 清空剩余肉鸽探索次数并终止任务
+                LogInfo << "[JieGarden] Clearing remaining roguelike exploration count and terminating task...";
+                if (auto process_ptr = dynamic_cast<ProcessTask*>(m_task_ptr)) {
+                    process_ptr->set_times_limit(m_config->get_theme() + "@Roguelike@StartExplore", 0);
+                    process_ptr->set_times_limit("Roguelike@StartExplore", 0);
+                }
+                if (m_task_ptr) {
+                    m_task_ptr->set_enable(false);
+                }
+                if (m_control_ptr) {
+                    m_control_ptr->set_enable(false);
+                }
                 return std::nullopt;
             }
         }
