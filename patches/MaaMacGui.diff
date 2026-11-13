@@ -1,21 +1,39 @@
 diff --git a/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift b/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift
-index a6ce36a..433581a 100644
+index a6ce36a..8262937 100644
 --- a/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift	
 +++ b/MeoAsstMac/Configuration Views/RoguelikeSettingsView.swift	
-@@ -234,6 +234,8 @@ extension RoguelikeConfiguration.Mode {
+@@ -40,6 +40,7 @@ struct RoguelikeSettingsView: View {
+                 Text($0.description).tag($0)
+             }
+         }
++        .disabled(config.mode == .reverseMeter)
+ 
+         TextField("最多探索次数", value: $config.starts_count, format: .number)
+     }
+@@ -63,6 +64,7 @@ struct RoguelikeSettingsView: View {
+                 Text(squad).tag(squad)
+             }
+         }
++        .disabled(config.mode == .reverseMeter)
+ 
+         Picker("开局职业组", selection: $config.roles) {
+             ForEach(config.theme.roles, id: \.self) { role in
+@@ -234,6 +236,10 @@ extension RoguelikeConfiguration.Mode {
              String(localized: "刷深入调查，尽可能稳定地打更多层数")
          case (.findPlaytime, _):
              String(localized: "刷常乐节点，第一层进洞，找不到需要的节点就重开")
 +        case (.testStrategy, _):
 +            String(localized: "刷稀有藏品與隱藏歲時，第一層進洞刷常樂與易與，第二層記錄歲時並退出")
++        case (.reverseMeter, _):
++            String(localized: "固定難度7與後勤分隊，通寶優先保留厲錢，第一層進洞刷常樂找令（找不到則重開）")
          case (.babyAnimal, _):
              String(localized: "刷襁褓动物")
          }
 diff --git a/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift b/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift
-index 9a80703..0cdc494 100644
+index 9a80703..6e74739 100644
 --- a/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift	
 +++ b/MeoAsstMac/Task Configurations/RoguelikeConfiguration.swift	
-@@ -29,6 +29,10 @@ struct RoguelikeConfiguration: MAATaskConfiguration {
+@@ -29,6 +29,14 @@ struct RoguelikeConfiguration: MAATaskConfiguration {
          ///
          /// 界园主题专用模式
          case findPlaytime = 20001
@@ -23,24 +41,65 @@ index 9a80703..0cdc494 100644
 +        ///
 +        /// 界园主题专用模式
 +        case testStrategy = 20002
++        /// 難度七令姐醇厚古法全厲錢電錶倒轉
++        ///
++        /// 界园主题专用模式
++        case reverseMeter = 20003
          /// 刷襁褓动物
          ///
          /// 黑流树海主题专用模式
-@@ -283,7 +287,7 @@ extension RoguelikeConfiguration.Theme {
+@@ -98,6 +106,10 @@ struct RoguelikeConfiguration: MAATaskConfiguration {
+             use_foldartal = mode != .clpPds
+             check_collapsal_paradigms = mode == .clpPds
+             if mode == .investment { investment_enabled = true }
++            if mode == .reverseMeter {
++                difficulty = .init(id: 7)
++                squad = "后勤分队"
++            }
+             if theme == .BlackFlow { investment_with_more_score = false }
+         }
+     }
+@@ -283,7 +295,7 @@ extension RoguelikeConfiguration.Theme {
          case .Sami:
              return commonModes + [.clpPds]
          case .JieGarden:
 -            return commonModes + [.findPlaytime]
-+            return commonModes + [.findPlaytime, .testStrategy]
++            return commonModes + [.findPlaytime, .testStrategy, .reverseMeter]
          case .BlackFlow:
              return [.exp, .investment, .babyAnimal]
          default:
-@@ -309,6 +313,8 @@ extension RoguelikeConfiguration.Mode {
+@@ -309,6 +321,10 @@ extension RoguelikeConfiguration.Mode {
              String(localized: "深入调查")
          case .findPlaytime:
              String(localized: "刷常乐节点")
 +        case .testStrategy:
 +            String(localized: "刷稀有藏品與隱藏歲時")
++        case .reverseMeter:
++            String(localized: "難度七令姐醇厚古法全厲錢電錶倒轉")
          case .babyAnimal:
              String(localized: "刷襁褓动物")
          }
+@@ -420,6 +436,7 @@ extension RoguelikeConfiguration {
+     }
+ 
+     fileprivate var checkedJiePlaytimeTarget: Int? {
++        if theme == .JieGarden && mode == .reverseMeter { return 1 }
+         guard theme == .JieGarden, mode == .findPlaytime else { return nil }
+         return jieFindPlaytimeTarget.rawValue
+     }
+@@ -434,13 +451,13 @@ extension RoguelikeConfiguration.Params {
+     init(config: RoguelikeConfiguration) {
+         self.theme = config.theme.rawValue
+         self.mode = config.mode.rawValue
+-        self.squad = config.squad
++        self.squad = config.mode == .reverseMeter ? "后勤分队" : config.squad
+         self.roles = config.roles
+         self.core_char = config.core_char
+         self.use_support = config.use_support
+         self.use_nonfriend_support = config.use_support ? config.use_nonfriend_support : nil
+         self.starts_count = config.starts_count
+-        self.difficulty = config.difficulty.id
++        self.difficulty = config.mode == .reverseMeter ? 7 : config.difficulty.id
+         self.stop_at_final_boss = config.mode == .exp && config.theme != .Phantom ? config.stop_at_final_boss : nil
+         self.stop_at_max_level = config.mode == .exp ? config.stop_at_max_level : nil
+         self.investment_enabled = config.mode == .investment || config.investment_enabled

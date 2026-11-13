@@ -40,6 +40,7 @@ enum class RoguelikeMode
     // ------------------ 界园主题专用模式 ------------------
     FindPlaytime = 20'001, // 20001 - 刷常乐节点，第一层进洞，找不到需要的节点就重开
     TestStrategy = 20'002, // 20002 - 刷稀有藏品与隐藏岁时
+    ReverseMeter = 20'003, // 20003 - 难度七令姐醇厚古法全厉钱电表倒转
 
     // ------------------ 黑流树海主题专用模式 ------------------
     BlackFlowBabyAnimal = 30'001 // 30001 - 刷襁褓动物
@@ -115,7 +116,8 @@ public:
                mode == RoguelikeMode::Squad || mode == RoguelikeMode::Exploration ||
                (mode == RoguelikeMode::CLP_PDS && theme == RoguelikeTheme::Sami) ||
                (mode == RoguelikeMode::FastPass && theme == RoguelikeTheme::Sarkaz) ||
-               ((mode == RoguelikeMode::FindPlaytime || mode == RoguelikeMode::TestStrategy) &&
+               ((mode == RoguelikeMode::FindPlaytime || mode == RoguelikeMode::TestStrategy ||
+                 mode == RoguelikeMode::ReverseMeter) &&
                 theme == RoguelikeTheme::JieGarden);
     }
 

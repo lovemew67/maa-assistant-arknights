@@ -18,11 +18,14 @@ bool asst::RoguelikeBoskyPassageRoutingTaskPlugin::load_params([[maybe_unused]] 
         m_bosky_config = bosky_config->special_params;
 
         // ———————— 选择导航策略 ————————
-        if (m_config->get_mode() == RoguelikeMode::FindPlaytime) {
+        if (m_config->get_mode() == RoguelikeMode::FindPlaytime ||
+            m_config->get_mode() == RoguelikeMode::ReverseMeter) {
             m_bosky_routing_strategy = RoutingStrategy::FindPlaytime_JieGarden;
-            int target = m_config->get_find_playTime_target();
+            int target = m_config->get_mode() == RoguelikeMode::ReverseMeter
+                             ? static_cast<int>(RoguelikeBoskySubNodeType::Ling)
+                             : m_config->get_find_playTime_target();
             RoguelikeBoskyPassageMap::get_instance().set_target_subtype(static_cast<RoguelikeBoskySubNodeType>(target));
-            Log.info(__FUNCTION__, "| FindPlaytime mode enabled with target:", target);
+            Log.info(__FUNCTION__, "| ReverseMeter / FindPlaytime mode enabled with target:", target);
             return true;
         }
 

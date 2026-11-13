@@ -1437,6 +1437,10 @@
         "binThreshold": [200, 255],
         "useRaw": false
     },
+    "JieGarden@Roguelike@StrategyChange_mode20003": {
+        "Doc": "难度七令姐醇厚古法全厉钱电表倒转",
+        "baseTask": "JieGarden@Roguelike@StrategyChange_mode20001"
+    },
     "JieGarden@Roguelike@StrategyChange_mode4": {
         "text": ["_default", "_exit", "_leaveBoskyPassage"],
         "ocrReplace": [

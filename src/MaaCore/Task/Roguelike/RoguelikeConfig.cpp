@@ -1,6 +1,7 @@
 #include "RoguelikeConfig.h"
 
 #include "Config/TaskData.h"
+#include "Map/RoguelikeBoskyPassageMap.h"
 #include "Utils/Logger.hpp"
 
 bool asst::RoguelikeConfig::verify_and_load_params(const json::value& params)
@@ -86,6 +87,10 @@ bool asst::RoguelikeConfig::verify_and_load_params(const json::value& params)
                 // 启用刷常乐节点策略，联动 RoguelikeRoutingTaskPlugin
                 Task.set_task_base(strategy_task, "JieGarden@Roguelike@StrategyChange_mode20001");
             }
+            if (m_mode == RoguelikeMode::ReverseMeter) {
+                // 启用电表倒转策略，联动 RoguelikeRoutingTaskPlugin
+                Task.set_task_base(strategy_task, "JieGarden@Roguelike@StrategyChange_mode20003");
+            }
         }
     }
 
@@ -111,6 +116,12 @@ bool asst::RoguelikeConfig::verify_and_load_params(const json::value& params)
             Log.error(__FUNCTION__, "| Invalid find_playTime_target", m_find_playTime_target);
             return false;
         }
+    }
+
+    if (m_mode == RoguelikeMode::ReverseMeter) {
+        m_difficulty = 7;
+        m_squad = "后勤分队";
+        m_find_playTime_target = static_cast<int>(RoguelikeBoskySubNodeType::Ling);
     }
 
     return true;

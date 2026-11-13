@@ -78,7 +78,10 @@ bool asst::RoguelikeDifficultySelectionTaskPlugin::_run()
         Log.info(__FUNCTION__, "| Running for collectible");
     }
 
-    const int difficulty = m_config->get_run_for_collectible() ? m_collectible_difficulty : m_config->get_difficulty();
+    int difficulty = m_config->get_run_for_collectible() ? m_collectible_difficulty : m_config->get_difficulty();
+    if (m_config->get_mode() == RoguelikeMode::ReverseMeter) {
+        difficulty = 7;
+    }
     Log.info(__FUNCTION__, "| current_difficulty:", m_current_difficulty, "next difficulty:", difficulty);
 
     // 仅在插件记录的当前难度与目标难度不一致时重新选择难度

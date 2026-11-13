@@ -81,6 +81,9 @@ private:
     // 保存调试图像到文件
     void save_debug_image(const cv::Mat& image, const std::string& suffix, bool auto_clean = true) const;
 
+    // 针对特定肉鸽策略模式调整通宝优先级（如全厉钱策略）
+    void adjust_priorities_for_mode(RoguelikeCopper& copper) const;
+
     mutable asst::CoppersTaskRunMode m_run_mode; // 当前运行模式
 
     // ———————— 运行时状态变量 ——————————————————————————————————

@@ -218,6 +218,9 @@
             ["是非境", "_boskyPassageDefault"]
         ]
     },
+    "JieGarden@Roguelike@StrategyChange_mode20003": {
+        "baseTask": "JieGarden@Roguelike@StrategyChange_mode20001"
+    },
     "JieGarden@Roguelike@StrategyChange_mode4": {
         "ocrReplace": [
             ["洪陸樓", "_default"],

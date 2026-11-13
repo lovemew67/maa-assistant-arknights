@@ -75,6 +75,9 @@ bool asst::RoguelikeCustomStartTaskPlugin::verify(AsstMsg msg, const json::value
 bool asst::RoguelikeCustomStartTaskPlugin::load_params(const json::value& params)
 {
     m_squad = params.get("squad", "");
+    if (m_config->get_mode() == RoguelikeMode::ReverseMeter) {
+        m_squad = "后勤分队";
+    }
     if (m_config->get_mode() == RoguelikeMode::Collectible) {
         m_collectible_mode_squad = params.get("collectible_mode_squad", m_squad);
     }
@@ -131,6 +134,9 @@ bool asst::RoguelikeCustomStartTaskPlugin::_run()
 bool asst::RoguelikeCustomStartTaskPlugin::hijack_squad()
 {
     std::string squad = !m_config->get_run_for_collectible() ? m_squad : m_collectible_mode_squad;
+    if (m_config->get_mode() == RoguelikeMode::ReverseMeter) {
+        squad = "后勤分队";
+    }
     if (squad.empty()) { // 简单处理，认为指挥分队无需滑屏，没有就随机
         return ProcessTask(
                    *this,

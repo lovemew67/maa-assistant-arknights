@@ -6,6 +6,7 @@
 #include "Controller/Controller.h"
 #include "MaaUtils/ImageIo.h"
 #include "Task/ProcessTask.h"
+#include "Task/Roguelike/RoguelikeConfig.h"
 #include "Utils/DebugImageHelper.hpp"
 #include "Utils/Logger.hpp"
 #include "Vision/Matcher.h"
@@ -133,8 +134,12 @@ asst::CopperTaskResult asst::RoguelikeCoppersTaskPlugin::handle_pickup_mode()
             continue;
         }
 
+        auto copper = std::move(*copper_opt);
+        copper.type = RoguelikeCoppersConfig::get_type_from_template(detection.templ_name);
+        adjust_priorities_for_mode(copper);
+
         // 将通宝及其点击坐标保存到待选列表
-        m_pending_copper.emplace_back(std::move(*copper_opt), detection.click_point);
+        m_pending_copper.emplace_back(std::move(copper), detection.click_point);
 
 #ifdef ASST_DEBUG
         // 调试模式下在图像上绘制检测结果（绿色表示拾取模式）
@@ -242,6 +247,7 @@ asst::CopperTaskResult asst::RoguelikeCoppersTaskPlugin::handle_exchange_mode()
         auto copper = std::move(*copper_opt);
         // 根据模板确定通宝类型
         copper.type = RoguelikeCoppersConfig::get_type_from_template(detection.templ_name);
+        adjust_priorities_for_mode(copper);
 
         m_new_copper = std::move(copper);
 
@@ -334,6 +340,7 @@ asst::CopperTaskResult asst::RoguelikeCoppersTaskPlugin::handle_exchange_mode()
 
             auto copper = std::move(*copper_opt);
             copper.type = RoguelikeCoppersConfig::get_type_from_template(detection.templ_name);
+            adjust_priorities_for_mode(copper);
 
             // 添加到现有通宝列表
             m_copper_list.emplace_back(std::move(copper));
@@ -542,6 +549,7 @@ std::optional<asst::RoguelikeCopper> asst::RoguelikeCoppersTaskPlugin::create_co
         copper.col = col;
         copper.row = row;
         copper.is_cast = is_cast;
+        adjust_priorities_for_mode(copper);
         Log.info(
             __FUNCTION__,
             std::format(
@@ -637,5 +645,35 @@ void asst::RoguelikeCoppersTaskPlugin::save_debug_image(
     }
     catch (const std::exception& e) {
         Log.error(__FUNCTION__, "| failed to save debug image:", e.what());
+    }
+}
+
+void asst::RoguelikeCoppersTaskPlugin::adjust_priorities_for_mode(RoguelikeCopper& copper) const
+{
+    if (m_config->get_mode() == RoguelikeMode::ReverseMeter) {
+        bool is_li = (copper.type == CopperType::Li || copper.name.starts_with("厉-") || copper.name.starts_with("厲-"));
+        if (is_li) {
+            copper.type = CopperType::Li;
+            if (copper.discard_priority >= 50'000) {
+                copper.discard_priority -= 100'000;
+            }
+            if (copper.cast_discard_priority >= 50'000) {
+                copper.cast_discard_priority -= 100'000;
+            }
+            if (copper.pickup_priority < 50'000) {
+                copper.pickup_priority += 100'000;
+            }
+        }
+        else {
+            if (copper.pickup_priority >= 50'000) {
+                copper.pickup_priority -= 100'000;
+            }
+            if (copper.discard_priority < 50'000) {
+                copper.discard_priority += 100'000;
+            }
+            if (copper.cast_discard_priority >= 0 && copper.cast_discard_priority < 50'000) {
+                copper.cast_discard_priority += 100'000;
+            }
+        }
     }
 }
