@@ -105,7 +105,9 @@ bool asst::RoguelikeRecruitTaskPlugin::_run()
     // 刷常乐节点保存路上招募券
     // 只在非开局招募时保存招募券
     if (theme == RoguelikeTheme::JieGarden &&
-        (mode == RoguelikeMode::FindPlaytime || mode == RoguelikeMode::ReverseMeter) && !m_initail_recruit) {
+        (mode == RoguelikeMode::FindPlaytime || mode == RoguelikeMode::ReverseMeter ||
+         mode == RoguelikeMode::ReverseMeterDiff0) &&
+        !m_initail_recruit) {
         bool ret = ProcessTask(*this, { "JieGarden@Roguelike@ReserveRecruitmentVoucher" }).run();
         if (ret) {
             // 判断当前界面是否存在尚未消失的确认招募按钮，等待其消失

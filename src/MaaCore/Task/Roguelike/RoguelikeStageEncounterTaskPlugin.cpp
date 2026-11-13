@@ -209,7 +209,8 @@ std::optional<std::string> asst::RoguelikeStageEncounterTaskPlugin::handle_singl
             }
         }
 
-        if (m_config->get_mode() == RoguelikeMode::ReverseMeter) {
+        if (m_config->get_mode() == RoguelikeMode::ReverseMeter ||
+            m_config->get_mode() == RoguelikeMode::ReverseMeterDiff0) {
             bosky_map.set_target_subtype(RoguelikeBoskySubNodeType::Ling);
         }
 

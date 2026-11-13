@@ -78,11 +78,17 @@ bool asst::RoguelikeCustomStartTaskPlugin::load_params(const json::value& params
     if (m_config->get_mode() == RoguelikeMode::ReverseMeter) {
         m_squad = "后勤分队";
     }
+    else if (m_config->get_mode() == RoguelikeMode::ReverseMeterDiff0) {
+        m_squad = "特勤分队";
+    }
     if (m_config->get_mode() == RoguelikeMode::Collectible) {
         m_collectible_mode_squad = params.get("collectible_mode_squad", m_squad);
     }
 
     m_config->set_start_opers(RoguelikeConfig::parse_start_opers(params));           // 开局干员顺位列表
+    if (m_config->get_mode() == RoguelikeMode::ReverseMeterDiff0) {
+        m_config->set_start_opers({ { .name = "电弧", .use_support = false } });
+    }
     set_custom(RoguelikeCustomType::Roles, params.get("roles", ""));                 // 开局职业组
     m_config->set_use_nonfriend_support(params.get("use_nonfriend_support", false)); // 是否可以是非好友助战干员
 
@@ -136,6 +142,9 @@ bool asst::RoguelikeCustomStartTaskPlugin::hijack_squad()
     std::string squad = !m_config->get_run_for_collectible() ? m_squad : m_collectible_mode_squad;
     if (m_config->get_mode() == RoguelikeMode::ReverseMeter) {
         squad = "后勤分队";
+    }
+    else if (m_config->get_mode() == RoguelikeMode::ReverseMeterDiff0) {
+        squad = "特勤分队";
     }
     if (squad.empty()) { // 简单处理，认为指挥分队无需滑屏，没有就随机
         return ProcessTask(

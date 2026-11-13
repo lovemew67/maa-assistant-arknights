@@ -117,6 +117,36 @@ asst::CopperTaskResult asst::RoguelikeCoppersTaskPlugin::handle_pickup_mode()
         return CopperTaskResult::FAILED;
     }
 
+    if (m_config->get_mode() == RoguelikeMode::ReverseMeterDiff0) {
+        bool found_cocoon = false;
+        for (const auto& detection : detections) {
+            if (detection.name.find("茧成绢") != std::string::npos ||
+                detection.name.find("繭成絹") != std::string::npos) {
+                found_cocoon = true;
+                break;
+            }
+        }
+
+        if (found_cocoon) {
+            m_config->set_has_cocoon(true);
+            LogInfo << "========================================";
+            LogInfo << "[ReverseMeterDiff0] Found ｢花-茧成绢｣ in battle drops!";
+            LogInfo << "========================================";
+        }
+        else if (!m_config->has_cocoon()) {
+            LogInfo << "========================================";
+            LogInfo << "[ReverseMeterDiff0] ｢花-茧成绢｣ not found in Floor 1 battle drops, restarting...";
+            LogInfo << "========================================";
+
+            Task.set_task_base(
+                m_config->get_theme() + "@Roguelike@Stages",
+                m_config->get_theme() + "@Roguelike@Stages_restart");
+            Task.set_task_base(
+                "RoguelikeRoutingAction",
+                m_config->get_theme() + "@RoguelikeRoutingAction-ExitThenAbandon");
+        }
+    }
+
     asst::Point click_point_fallback(0, 0);
 
     // 遍历每个检测到的通宝，创建通宝对象
@@ -653,6 +683,46 @@ void asst::RoguelikeCoppersTaskPlugin::adjust_priorities_for_mode(RoguelikeCoppe
     if (m_config->get_mode() == RoguelikeMode::ReverseMeter) {
         bool is_li = (copper.type == CopperType::Li || copper.name.starts_with("厉-") || copper.name.starts_with("厲-"));
         if (is_li) {
+            copper.type = CopperType::Li;
+            if (copper.discard_priority >= 50'000) {
+                copper.discard_priority -= 100'000;
+            }
+            if (copper.cast_discard_priority >= 50'000) {
+                copper.cast_discard_priority -= 100'000;
+            }
+            if (copper.pickup_priority < 50'000) {
+                copper.pickup_priority += 100'000;
+            }
+        }
+        else {
+            if (copper.pickup_priority >= 50'000) {
+                copper.pickup_priority -= 100'000;
+            }
+            if (copper.discard_priority < 50'000) {
+                copper.discard_priority += 100'000;
+            }
+            if (copper.cast_discard_priority >= 0 && copper.cast_discard_priority < 50'000) {
+                copper.cast_discard_priority += 100'000;
+            }
+        }
+    }
+    else if (m_config->get_mode() == RoguelikeMode::ReverseMeterDiff0) {
+        bool is_cocoon =
+            (copper.name.find("茧成绢") != std::string::npos || copper.name.find("繭成絹") != std::string::npos);
+        bool is_li = (copper.type == CopperType::Li || copper.name.starts_with("厉-") || copper.name.starts_with("厲-"));
+        if (is_cocoon) {
+            // "花-茧成绢" 拥有绝对最高拾取优先度与绝对最低弃置优先度
+            if (copper.pickup_priority < 150'000) {
+                copper.pickup_priority += 200'000;
+            }
+            if (copper.discard_priority >= 50'000) {
+                copper.discard_priority -= 100'000;
+            }
+            if (copper.cast_discard_priority >= 50'000) {
+                copper.cast_discard_priority -= 100'000;
+            }
+        }
+        else if (is_li) {
             copper.type = CopperType::Li;
             if (copper.discard_priority >= 50'000) {
                 copper.discard_priority -= 100'000;

@@ -91,6 +91,10 @@ bool asst::RoguelikeConfig::verify_and_load_params(const json::value& params)
                 // 启用电表倒转策略，联动 RoguelikeRoutingTaskPlugin
                 Task.set_task_base(strategy_task, "JieGarden@Roguelike@StrategyChange_mode20003");
             }
+            if (m_mode == RoguelikeMode::ReverseMeterDiff0) {
+                // 启用难度零电表倒转策略，联动 RoguelikeRoutingTaskPlugin
+                Task.set_task_base(strategy_task, "JieGarden@Roguelike@StrategyChange_mode20004");
+            }
         }
     }
 
@@ -124,6 +128,13 @@ bool asst::RoguelikeConfig::verify_and_load_params(const json::value& params)
         m_find_playTime_target = static_cast<int>(RoguelikeBoskySubNodeType::Ling);
     }
 
+    if (m_mode == RoguelikeMode::ReverseMeterDiff0) {
+        m_difficulty = 0;
+        m_squad = "特勤分队";
+        m_find_playTime_target = static_cast<int>(RoguelikeBoskySubNodeType::Ling);
+        m_start_opers = { { .name = "电弧", .use_support = false } };
+    }
+
     return true;
 }
 
@@ -134,6 +145,7 @@ void asst::RoguelikeConfig::clear()
 
     // ------------------ 通用参数 ------------------
     m_squad = std::string();
+    m_has_cocoon = false;
 }
 
 std::vector<asst::RoguelikeStartOper> asst::RoguelikeConfig::parse_start_opers(const json::value& params)

@@ -41,6 +41,7 @@ enum class RoguelikeMode
     FindPlaytime = 20'001, // 20001 - 刷常乐节点，第一层进洞，找不到需要的节点就重开
     TestStrategy = 20'002, // 20002 - 刷稀有藏品与隐藏岁时
     ReverseMeter = 20'003, // 20003 - 难度七令姐醇厚古法全厉钱电表倒转
+    ReverseMeterDiff0 = 20'004, // 20004 - 难度零令姐醇厚古法全厉钱电表倒转
 
     // ------------------ 黑流树海主题专用模式 ------------------
     BlackFlowBabyAnimal = 30'001 // 30001 - 刷襁褓动物
@@ -117,7 +118,7 @@ public:
                (mode == RoguelikeMode::CLP_PDS && theme == RoguelikeTheme::Sami) ||
                (mode == RoguelikeMode::FastPass && theme == RoguelikeTheme::Sarkaz) ||
                ((mode == RoguelikeMode::FindPlaytime || mode == RoguelikeMode::TestStrategy ||
-                 mode == RoguelikeMode::ReverseMeter) &&
+                 mode == RoguelikeMode::ReverseMeter || mode == RoguelikeMode::ReverseMeterDiff0) &&
                 theme == RoguelikeTheme::JieGarden);
     }
 
@@ -240,8 +241,12 @@ public:
 
     bool get_use_nonfriend_support() const { return m_use_nonfriend_support; }
 
+    bool has_cocoon() const { return m_has_cocoon; }
+    void set_has_cocoon(bool val) { m_has_cocoon = val; }
+
 private:
     RoguelikeStatus m_status; // 局内状态
+    bool m_has_cocoon = false;
 
     // ------------------ 开局 ------------------
     std::vector<RoguelikeStartOper> m_start_opers; // 开局干员顺位列表，任务参数，整局不变
